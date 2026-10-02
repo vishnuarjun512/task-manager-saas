@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
+import { ThemeProvider } from "@/lib/theme-provider";
 import { WorkspaceStoreProvider } from "@/lib/workspace-store";
 import "./globals.css";
 
@@ -41,9 +42,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className="antialiased">
-        <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
+        <ThemeProvider>
+          <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
+        </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>

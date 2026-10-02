@@ -16,27 +16,27 @@ import {
   LayoutDashboard,
   ListTodo,
   Menu,
-  Moon,
   MoreHorizontal,
   Plus,
   Search,
   Settings,
   Sparkles,
-  Sun,
   Target,
   UserRound,
   UserPlus,
   Users,
   X,
+  PowerOffIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { projectData, tasks } from "@/lib/orbit-data";
 import { InviteTeammateDialog } from "@/components/invite-teammate-dialog";
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { useWorkspaceStore } from "@/lib/workspace-store";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navigation = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/home", label: "Overview", icon: LayoutDashboard },
   { href: "/tasks", label: "My tasks", icon: ListTodo },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
@@ -55,6 +55,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
     connections,
     profile,
   } = useWorkspaceStore();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -62,7 +63,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [dark, setDark] = useState(false);
+
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
   );
@@ -90,19 +91,6 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
   }, [pathname, projects]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("orbit-theme") === "dark";
-    // Hydration-safe: initialize from localStorage after mount so the server
-    // and client render the same markup before the browser restores state.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDark(saved);
-    document.documentElement.classList.toggle("dark", saved);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
-
-  useEffect(() => {
     function handleKeyboard(event: KeyboardEvent) {
       const target = event.target;
       const editingText =
@@ -127,13 +115,6 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
   }, []);
-
-  function toggleTheme() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    window.localStorage.setItem("orbit-theme", next ? "dark" : "light");
-  }
 
   async function copyProfileId() {
     try {
@@ -314,20 +295,6 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                   >
                     <UserRound size={14} /> My profile
                   </Link>
-                  <Link
-                    href="/connections"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f5f6f8] dark:hover:bg-white/5"
-                  >
-                    <Users size={14} /> Connections
-                  </Link>
-                  <Link
-                    href="/settings"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-[#f5f6f8] dark:hover:bg-white/5"
-                  >
-                    <Settings size={14} /> Account settings
-                  </Link>
                   <button
                     type="button"
                     onClick={() => {
@@ -355,14 +322,13 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                   >
                     <Command size={14} /> Keyboard shortcuts
                   </button>
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    className="mt-1 flex w-full items-center gap-2 border-t border-[#eff0f3] px-2 py-2 text-left hover:bg-[#f5f6f8] dark:border-white/10 dark:hover:bg-white/5"
+                  <Link
+                    href="/"
+                    onClick={() => setProfileOpen(false)}
+                    className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-[#eff0f3] px-2 py-2 text-left text-[#b93d3d] transition-colors hover:bg-[#fff1f1] hover:text-[#9f2d2d] dark:border-white/10 dark:text-[#f28b82] dark:hover:bg-red-500/10 dark:hover:text-[#ffb4ab]"
                   >
-                    {dark ? <Sun size={14} /> : <Moon size={14} />}
-                    {dark ? "Switch to light mode" : "Switch to dark mode"}
-                  </button>
+                    <PowerOffIcon size={14} /> Logout
+                  </Link>
                 </div>
               )}
             </div>
@@ -389,6 +355,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <button
                 type="button"
                 aria-label="Search tasks and projects"
