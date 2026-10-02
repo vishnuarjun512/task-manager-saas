@@ -98,6 +98,7 @@ type AppData = {
 type WorkspaceInput = Pick<Workspace, "name" | "description">;
 type ProjectInput = Omit<WorkspaceProject, "id" | "progress" | "members">;
 type TaskInput = Omit<Task, "id" | "completed">;
+
 type WorkspaceStoreValue = AppData & {
   loaded: boolean;
   setActiveWorkspace: (id: string) => void;
@@ -146,6 +147,7 @@ const starterProjects: WorkspaceProject[] = projectData.map((project) => ({
   members: [...project.members],
   workspaceId: "ws-acme",
 }));
+
 const starterConnections: ConnectionRequest[] = [
   {
     id: "request-sarah",
