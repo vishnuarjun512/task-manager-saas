@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { WorkspaceStoreProvider } from "@/lib/workspace-store";
 import "./globals.css";
@@ -47,6 +48,7 @@ export default function RootLayout({
         <ThemeProvider>
           <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
         </ThemeProvider>
+        <Toaster />
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
