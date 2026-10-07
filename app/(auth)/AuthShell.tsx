@@ -3,13 +3,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Command, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DialogShell } from "@/components/dialog-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { execute, login, register, requestPasswordReset } from "@/lib/auth-api";
+import { login, register, requestPasswordReset } from "@/lib/auth-api";
+import { useApi } from "@/lib/use-api";
 
 const credentialsSchema = z.object({
   email: z.email("Enter a valid email address."),
@@ -25,6 +27,8 @@ type ResetEmail = z.infer<typeof resetEmailSchema>;
 export function AuthShell({ mode }: { mode: "login" | "register" }) {
   const isLogin = mode === "login";
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const router = useRouter();
+  const { execute } = useApi();
 
   const {
     register: registerField,
@@ -43,20 +47,16 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
 
   const onSubmit = async ({ email, password }: Credentials) => {
     try {
-      const response = await execute(() =>
+      const { message } = await execute(() =>
         isLogin ? login(email, password) : register(email, password),
       );
-      const data = (await response.json().catch(() => ({}))) as {
-        message?: unknown;
-      };
-
       toast.success(
-        typeof data.message === "string"
-          ? data.message
-          : isLogin
+        message ??
+          (isLogin
             ? "Logged in successfully."
-            : "Account created successfully.",
+            : "Account created successfully."),
       );
+      if (isLogin) router.push("/home");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Something went wrong.",
@@ -66,15 +66,10 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
 
   const onForgotPassword = async ({ email }: ResetEmail) => {
     try {
-      const response = await execute(() => requestPasswordReset(email));
-      const data = (await response.json().catch(() => ({}))) as {
-        message?: unknown;
-      };
-
+      const { message } = await execute(() => requestPasswordReset(email));
       toast.success(
-        typeof data.message === "string"
-          ? data.message
-          : "If an account exists for that email, a reset link will be sent.",
+        message ??
+          "If an account exists for that email, a reset link will be sent.",
       );
       setForgotPasswordOpen(false);
       resetForgotForm();
