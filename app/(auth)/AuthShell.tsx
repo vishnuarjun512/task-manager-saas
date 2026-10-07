@@ -34,6 +34,7 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
     register: registerField,
     handleSubmit,
     getValues,
+    reset: resetCredentials,
     formState: { errors, isSubmitting },
   } = useForm<Credentials>({ resolver: zodResolver(credentialsSchema) });
 
@@ -50,33 +51,44 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
       const { message } = await execute(() =>
         isLogin ? login(email, password) : register(email, password),
       );
-      toast.success(
-        message ??
+      toast.success(isLogin ? "Welcome back" : "Account created", {
+        description:
+          message ??
           (isLogin
-            ? "Logged in successfully."
-            : "Account created successfully."),
-      );
-      if (isLogin) router.push("/home");
+            ? "You have been signed in successfully."
+            : "Your account has been created successfully."),
+      });
+      if (isLogin) {
+        router.push("/home");
+      } else {
+        resetCredentials();
+        resetForgotForm();
+        setForgotPasswordOpen(false);
+        router.replace("/login");
+      }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Something went wrong.",
-      );
+      toast.error(isLogin ? "Login failed" : "Registration failed", {
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
     }
   };
 
   const onForgotPassword = async ({ email }: ResetEmail) => {
     try {
       const { message } = await execute(() => requestPasswordReset(email));
-      toast.success(
-        message ??
+      toast.success("Password reset requested", {
+        description:
+          message ??
           "If an account exists for that email, a reset link will be sent.",
-      );
+      });
       setForgotPasswordOpen(false);
       resetForgotForm();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Something went wrong.",
-      );
+      toast.error("Password reset failed", {
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
     }
   };
 

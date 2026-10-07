@@ -47,8 +47,8 @@ export default function RootLayout({
       <body className="antialiased">
         <ThemeProvider>
           <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
+          <Toaster />
         </ThemeProvider>
-        <Toaster />
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
