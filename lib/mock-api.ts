@@ -8,7 +8,7 @@ import type {
 
 const workspaces: Workspace[] = [
   {
-    id: "ws-acme",
+    workspace_id: "ws-acme",
     name: "Acme workspace",
     description: "The shared space for Acme product and marketing work.",
   },
@@ -17,11 +17,11 @@ const workspaces: Workspace[] = [
 export function getMockWorkspaceData(): MockWorkspaceData {
   return {
     workspaces: workspaces.map((workspace) => ({ ...workspace })),
-    activeWorkspaceId: workspaces[0].id,
+    activeWorkspaceId: workspaces[0].workspace_id,
     projects: projectData.map((project) => ({
       ...project,
       members: [...project.members],
-      workspaceId: workspaces[0].id,
+      workspaceId: workspaces[0].workspace_id,
     })),
     tasks: tasks.map((task) => ({ ...task })),
     connections: [

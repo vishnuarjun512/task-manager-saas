@@ -51,10 +51,17 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
 
   const onSubmit = async ({ email, password }: Credentials) => {
     try {
-      const { data, message } = await execute<{ user?: AuthUser }>(() =>
-        isLogin ? login(email, password) : register(email, password),
-      );
-      if (isLogin && data.user) setUser(data.user);
+      let message: string | undefined;
+      if (isLogin) {
+        const data = await execute(() => login(email, password));
+        if (!data.user) {
+          throw new Error("Login response did not include user data.");
+        }
+        setUser(data.user);
+        message = data.message;
+      } else {
+        ({ message } = await execute(() => register(email, password)));
+      }
       toast.success(isLogin ? "Welcome back" : "Account created", {
         description:
           message ??

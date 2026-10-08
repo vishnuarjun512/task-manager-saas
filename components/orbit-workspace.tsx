@@ -69,7 +69,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === activeWorkspaceId,
+    (workspace) => workspace.workspace_id === activeWorkspaceId,
   );
   const workspaceProjects = projects.filter(
     (project) => project.workspaceId === activeWorkspaceId,
@@ -458,16 +458,18 @@ function WorkspacePicker({
           </p>
           {workspaces.map((workspace) => (
             <button
-              key={workspace.id}
+              key={workspace.workspace_id}
               type="button"
-              onClick={() => onSelect(workspace.id)}
-              className={`mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] ${workspace.id === activeWorkspaceId ? "bg-[#f0edff] text-[#5b49d4] dark:bg-white/10" : "hover:bg-[#f5f6f8] dark:hover:bg-white/5"}`}
+              onClick={() => onSelect(workspace.workspace_id)}
+              className={`mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] ${workspace.workspace_id === activeWorkspaceId ? "bg-[#f0edff] text-[#5b49d4] dark:bg-white/10" : "hover:bg-[#f5f6f8] dark:hover:bg-white/5"}`}
             >
               <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-[#e8e3ff] text-[9px] font-bold text-[#6755e8]">
                 {initials(workspace.name)}
               </span>
               <span className="flex-1 truncate">{workspace.name}</span>
-              {workspace.id === activeWorkspaceId && <Check size={13} />}
+              {workspace.workspace_id === activeWorkspaceId && (
+                <Check size={13} />
+              )}
             </button>
           ))}
           <Link
@@ -607,11 +609,7 @@ export function PageHeader({
   );
 }
 
-export function ProjectCard({
-  project,
-}: {
-  project: Project;
-}) {
+export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/projects/${project.id}`}

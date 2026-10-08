@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -16,12 +16,16 @@ import { useConnectionStore } from "@/lib/stores/connection-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import { useApi } from "@/lib/use-api";
+import { apiFetch } from "@/lib/api-fetch";
+import { Workspace } from "@/lib/stores/types";
 
 export function OverviewDashboard() {
   const { tasks } = useTaskStore();
   const { projects } = useProjectStore();
   const { activeWorkspaceId } = useWorkspaceStore();
   const { connections } = useConnectionStore();
+
   const workspaceProjects = projects.filter(
     (project) => project.workspaceId === activeWorkspaceId,
   );
@@ -35,6 +39,7 @@ export function OverviewDashboard() {
   const pendingConnections = connections.filter(
     (connection) => connection.status === "pending",
   );
+
   const stats = [
     {
       label: "Projects",
@@ -73,6 +78,24 @@ export function OverviewDashboard() {
     month: "long",
     day: "numeric",
   }).format(new Date());
+
+  const { execute } = useApi();
+  const { createWorkspace } = useWorkspaceStore();
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        const data = await execute(() => apiFetch("/workspace", "GET"));
+        const workspaces: Workspace[] = data.workspaces;
+        console.log(workspaces);
+        for (let i = 0; i < workspaces.length - 1; i++) {
+          createWorkspace(workspaces[i]);
+        }
+      } catch (error) {
+        console.log("Home Data Fetch Error -> ", error);
+      }
+    };
+    fetchHomeData();
+  }, []);
 
   return (
     <>

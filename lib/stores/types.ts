@@ -1,7 +1,7 @@
 import type { Task } from "@/lib/orbit-data";
 
 export type Workspace = {
-  id: string;
+  workspace_id: string;
   name: string;
   description: string;
 };
@@ -73,10 +73,12 @@ export type ScheduledTask = { date: string; time?: string };
 export type Schedule = Record<string, ScheduledTask>;
 
 export type AuthUser = {
-  id?: string;
-  name?: string;
-  email?: string;
-  [key: string]: unknown;
+  user_id: string;
+  email: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url?: string;
+  created_at: string;
 };
 
 export type Notification = {

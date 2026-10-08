@@ -2,13 +2,17 @@
 
 import { useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
+import { apiFetch } from "@/lib/api-fetch";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import type { Workspace } from "@/lib/stores/types";
+import { useApi } from "@/lib/use-api";
 
 export function WorkspaceManager() {
+  const { execute } = useApi();
   const {
     workspaces,
     activeWorkspaceId,
@@ -23,9 +27,29 @@ export function WorkspaceManager() {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Workspace | null>(null);
 
-  function saveWorkspace(input: Pick<Workspace, "name" | "description">) {
-    if (editing) updateWorkspace(editing.id, input);
-    else createWorkspace(input);
+  async function saveWorkspace(
+    input: Pick<Workspace, "name" | "description">,
+  ): Promise<void> {
+    if (editing) {
+      updateWorkspace(editing.workspace_id, input);
+    } else {
+      try {
+        await execute(() =>
+          apiFetch("/workspace", "POST", {
+            name: input.name,
+            description: input.description,
+          }),
+        );
+        createWorkspace(input);
+        toast.success("Workspace created");
+      } catch (error) {
+        toast.error("Workspace creation failed", {
+          description:
+            error instanceof Error ? error.message : "Something went wrong.",
+        });
+        return;
+      }
+    }
     setEditing(null);
     setCreating(false);
   }
@@ -60,9 +84,9 @@ export function WorkspaceManager() {
             </tr>
           </thead>
           <tbody>
-            {workspaces.map((workspace) => {
+            {workspaces.map((workspace: Workspace) => {
               const workspaceProjects = projects.filter(
-                (project) => project.workspaceId === workspace.id,
+                (project) => project.workspaceId === workspace.workspace_id,
               );
               const workspaceProjectIds = new Set(
                 workspaceProjects.map((project) => project.id),
@@ -70,11 +94,11 @@ export function WorkspaceManager() {
               const workspaceTasks = tasks.filter((task) =>
                 workspaceProjectIds.has(task.projectId),
               );
-              const active = activeWorkspaceId === workspace.id;
+              const active = activeWorkspaceId === workspace.workspace_id;
 
               return (
                 <tr
-                  key={workspace.id}
+                  key={workspace.workspace_id}
                   className="border-b border-[#eff0f3] last:border-0 dark:border-white/10"
                 >
                   <td className="px-4 py-4">
@@ -89,7 +113,7 @@ export function WorkspaceManager() {
                       )}
                     </div>
                     <span className="mt-1 block font-mono text-[9px] text-[#a0a5af]">
-                      {workspace.id}
+                      {workspace.workspace_id}
                     </span>
                   </td>
                   <td className="max-w-70 px-4 py-4 text-[11px] text-[#858b97]">
@@ -108,7 +132,9 @@ export function WorkspaceManager() {
                       {!active && (
                         <button
                           type="button"
-                          onClick={() => setActiveWorkspace(workspace.id)}
+                          onClick={() =>
+                            setActiveWorkspace(workspace.workspace_id)
+                          }
                           className="rounded-md px-2 py-1.5 text-[10px] font-medium text-[#6755e8] hover:bg-[#f4f2ff] dark:hover:bg-white/5"
                         >
                           Switch
@@ -159,7 +185,7 @@ export function WorkspaceManager() {
           description="Projects and tasks in this workspace will also be removed from this browser."
           onClose={() => setDeleting(null)}
           onConfirm={() => {
-            deleteWorkspace(deleting.id);
+            deleteWorkspace(deleting.workspace_id);
             setDeleting(null);
           }}
         />
@@ -175,16 +201,22 @@ function WorkspaceForm({
 }: {
   workspace: Workspace | null;
   onClose: () => void;
-  onSave: (input: Pick<Workspace, "name" | "description">) => void;
+  onSave: (input: Pick<Workspace, "name" | "description">) => Promise<void>;
 }) {
   const [name, setName] = useState(workspace?.name ?? "");
   const [description, setDescription] = useState(workspace?.description ?? "");
+  const [isSaving, setIsSaving] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const cleanName = name.trim();
     if (!cleanName) return;
-    onSave({ name: cleanName, description: description.trim() });
+    setIsSaving(true);
+    try {
+      await onSave({ name: cleanName, description: description.trim() });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -219,15 +251,23 @@ function WorkspaceForm({
           <button
             type="button"
             onClick={onClose}
+            disabled={isSaving}
             className="rounded-md px-3 py-2 text-[11px] text-[#777d89] hover:bg-[#f3f4f6]"
           >
             Cancel
           </button>
           <button
             type="submit"
+            disabled={isSaving}
             className="rounded-md bg-[#6755e8] px-3 py-2 text-[11px] font-semibold text-white"
           >
-            {workspace ? "Save changes" : "Create workspace"}
+            {isSaving
+              ? workspace
+                ? "Saving..."
+                : "Creating..."
+              : workspace
+                ? "Save changes"
+                : "Create workspace"}
           </button>
         </div>
       </form>

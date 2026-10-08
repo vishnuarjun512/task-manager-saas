@@ -25,26 +25,32 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspaces: initialData.workspaces,
   activeWorkspaceId: initialData.activeWorkspaceId,
   loaded: true,
+
   setActiveWorkspace: (id) =>
     set((state) =>
-      state.workspaces.some((workspace) => workspace.id === id)
+      state.workspaces.some((workspace) => workspace.workspace_id === id)
         ? { activeWorkspaceId: id }
         : state,
     ),
+
   createWorkspace: (input) => {
-    const workspace = { ...input, id: createStoreId("ws") };
+    const workspace = { ...input, workspace_id: createStoreId("ws") };
     set((state) => ({
       workspaces: [...state.workspaces, workspace],
-      activeWorkspaceId: workspace.id,
+      activeWorkspaceId: workspace.workspace_id,
     }));
-    useActivityStore.getState().logActivity("Created workspace", workspace.name);
+    useActivityStore
+      .getState()
+      .logActivity("Created workspace", workspace.name);
   },
+
   updateWorkspace: (id, input) =>
     set((state) => ({
       workspaces: state.workspaces.map((workspace) =>
-        workspace.id === id ? { ...workspace, ...input } : workspace,
+        workspace.workspace_id === id ? { ...workspace, ...input } : workspace,
       ),
     })),
+
   deleteWorkspace: (id) => {
     const state = get();
     if (state.workspaces.length < 2) return;
@@ -56,13 +62,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     );
     set((current) => {
       const workspaces = current.workspaces.filter(
-        (workspace) => workspace.id !== id,
+        (workspace) => workspace.workspace_id !== id,
       );
       return {
         workspaces,
         activeWorkspaceId:
           current.activeWorkspaceId === id
-            ? workspaces[0].id
+            ? workspaces[0].workspace_id
             : current.activeWorkspaceId,
       };
     });
