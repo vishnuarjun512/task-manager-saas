@@ -2,7 +2,6 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme-provider";
-import { WorkspaceStoreProvider } from "@/lib/workspace-store";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -46,7 +45,7 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth">
       <body className="antialiased">
         <ThemeProvider>
-          <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
+          {children}
           <Toaster />
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}

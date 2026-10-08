@@ -11,6 +11,8 @@ import { z } from "zod";
 import { DialogShell } from "@/components/dialog-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { login, register, requestPasswordReset } from "@/lib/auth-api";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import type { AuthUser } from "@/lib/stores/types";
 import { useApi } from "@/lib/use-api";
 
 const credentialsSchema = z.object({
@@ -29,6 +31,7 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const router = useRouter();
   const { execute } = useApi();
+  const setUser = useAuthStore((state) => state.setUser);
 
   const {
     register: registerField,
@@ -48,9 +51,10 @@ export function AuthShell({ mode }: { mode: "login" | "register" }) {
 
   const onSubmit = async ({ email, password }: Credentials) => {
     try {
-      const { message } = await execute(() =>
+      const { data, message } = await execute<{ user?: AuthUser }>(() =>
         isLogin ? login(email, password) : register(email, password),
       );
+      if (isLogin && data.user) setUser(data.user);
       toast.success(isLogin ? "Welcome back" : "Account created", {
         description:
           message ??

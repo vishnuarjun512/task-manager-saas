@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -11,13 +11,14 @@ import {
   X,
 } from "lucide-react";
 import type { Task } from "@/lib/orbit-data";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useSettingsStore } from "@/lib/stores/settings-store";
+import { useTaskStore } from "@/lib/stores/task-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import type { ScheduledTask } from "@/lib/stores/types";
 
-type ScheduledTask = { date: string; time?: string };
-type Schedule = Record<string, ScheduledTask>;
 type PlannerTask = Task & { color: string };
 
-const storageKey = "orbit-task-schedule";
 const mondayFirst = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const sundayFirst = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 function toDateKey(date: Date) {
@@ -25,25 +26,6 @@ function toDateKey(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function readSchedule(taskIds: ReadonlySet<string>): Schedule {
-  if (typeof window === "undefined") return {};
-
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(storageKey) ?? "{}");
-    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
-
-    return Object.fromEntries(
-      Object.entries(saved).filter(([id, value]) => {
-        if (!taskIds.has(id) || !value || typeof value !== "object")
-          return false;
-        return /^\d{4}-\d{2}-\d{2}$/.test((value as ScheduledTask).date);
-      }),
-    ) as Schedule;
-  } catch {
-    return {};
-  }
 }
 
 function getMonthDays(
@@ -102,13 +84,10 @@ function PlannerTaskRow({
 }
 
 export function CalendarPlanner() {
-  const {
-    tasks,
-    projects,
-    activeWorkspaceId,
-    preferences,
-    loaded: tasksLoaded,
-  } = useWorkspaceStore();
+  const { tasks, schedule, setSchedule } = useTaskStore();
+  const { projects } = useProjectStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const { preferences } = useSettingsStore();
   const workspaceProjectIds = useMemo(
     () =>
       new Set(
@@ -134,28 +113,12 @@ export function CalendarPlanner() {
     () => new Set<string>(plannerTasks.map((task) => task.id)),
     [plannerTasks],
   );
-  const knownTaskIds = useMemo(
-    () => new Set<string>(tasks.map((task) => task.id)),
-    [tasks],
-  );
-  const [schedule, setSchedule] = useState<Schedule>(() =>
-    tasksLoaded ? readSchedule(knownTaskIds) : {},
-  );
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
   const [viewMonth, setViewMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-
-  useEffect(() => {
-    if (!tasksLoaded) return;
-    try {
-      window.localStorage.setItem(storageKey, JSON.stringify(schedule));
-    } catch {
-      // Keep the planner usable when browser storage is unavailable.
-    }
-  }, [schedule, tasksLoaded]);
 
   const calendarDays = useMemo(
     () =>

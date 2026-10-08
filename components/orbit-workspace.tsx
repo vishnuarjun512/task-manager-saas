@@ -29,10 +29,16 @@ import {
   PowerOffIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { projectData, tasks } from "@/lib/orbit-data";
+import type { Task } from "@/lib/orbit-data";
 import { InviteTeammateDialog } from "@/components/invite-teammate-dialog";
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { useConnectionStore } from "@/lib/stores/connection-store";
+import { useProfileStore } from "@/lib/stores/profile-store";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useTaskStore } from "@/lib/stores/task-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import type { Project, Workspace } from "@/lib/stores/types";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const navigation = [
@@ -46,15 +52,13 @@ const navigation = [
 
 export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const {
-    workspaces,
-    activeWorkspaceId,
-    setActiveWorkspace,
-    projects,
-    tasks: allTasks,
-    connections,
-    profile,
-  } = useWorkspaceStore();
+  const clearUser = useAuthStore((state) => state.clearUser);
+  const { workspaces, activeWorkspaceId, setActiveWorkspace } =
+    useWorkspaceStore();
+  const { projects } = useProjectStore();
+  const { tasks: allTasks } = useTaskStore();
+  const { connections } = useConnectionStore();
+  const { profile } = useProfileStore();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -324,7 +328,10 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                   </button>
                   <Link
                     href="/"
-                    onClick={() => setProfileOpen(false)}
+                    onClick={() => {
+                      setProfileOpen(false);
+                      clearUser();
+                    }}
                     className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-[#eff0f3] px-2 py-2 text-left text-[#b93d3d] transition-colors hover:bg-[#fff1f1] hover:text-[#9f2d2d] dark:border-white/10 dark:text-[#f28b82] dark:hover:bg-red-500/10 dark:hover:text-[#ffb4ab]"
                   >
                     <PowerOffIcon size={14} /> Logout
@@ -421,7 +428,7 @@ function WorkspacePicker({
   onToggle,
   onSelect,
 }: {
-  workspaces: ReturnType<typeof useWorkspaceStore>["workspaces"];
+  workspaces: Workspace[];
   activeWorkspaceId: string;
   activeWorkspaceName: string;
   open: boolean;
@@ -480,8 +487,8 @@ function SearchPanel({
   tasks,
   onClose,
 }: {
-  projects: ReturnType<typeof useWorkspaceStore>["projects"];
-  tasks: ReturnType<typeof useWorkspaceStore>["tasks"];
+  projects: Project[];
+  tasks: Task[];
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -603,7 +610,7 @@ export function PageHeader({
 export function ProjectCard({
   project,
 }: {
-  project: (typeof projectData)[number];
+  project: Project;
 }) {
   return (
     <Link
@@ -646,4 +653,3 @@ export function ProjectCard({
 }
 
 export { TaskList } from "@/components/task-list";
-export { tasks };

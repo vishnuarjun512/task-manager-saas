@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { Check, Link2, UserRoundPlus, X } from "lucide-react";
 import { OrbitWorkspace, PageHeader } from "@/components/orbit-workspace";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useConnectionStore } from "@/lib/stores/connection-store";
 
 export default function InboxPage() {
   const { connections, updateConnectionStatus, deleteConnection } =
-    useWorkspaceStore();
+    useConnectionStore();
   const received = connections.filter(
     (connection) =>
       connection.direction === "incoming" && connection.status === "pending",

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Bell, CalendarDays, Globe2, SlidersHorizontal } from "lucide-react";
 import { OrbitWorkspace, PageHeader } from "@/components/orbit-workspace";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useSettingsStore } from "@/lib/stores/settings-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 
 const timezones = [
   "UTC",
@@ -22,10 +23,9 @@ export default function SettingsPage() {
     workspaces,
     activeWorkspaceId,
     setActiveWorkspace,
-    preferences,
-    updatePreferences,
     loaded,
   } = useWorkspaceStore();
+  const { preferences, updatePreferences } = useSettingsStore();
   const [saved, setSaved] = useState(false);
 
   function updatePreference(input: Parameters<typeof updatePreferences>[0]) {
@@ -159,7 +159,7 @@ export default function SettingsPage() {
               ? "Loading preferences"
               : saved
                 ? "Changes saved"
-                : "Preferences are saved on this device"}
+                : "Preferences apply during this session"}
           </p>
           <span className="text-[9px] text-[#a0a5af]">Local workspace</span>
         </div>

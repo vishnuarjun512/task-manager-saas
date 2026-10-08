@@ -4,20 +4,18 @@ import { useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
 import { TaskList } from "@/components/task-list";
-import { useWorkspaceStore } from "@/lib/workspace-store";
 import type { Task } from "@/lib/orbit-data";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useTaskStore } from "@/lib/stores/task-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import type { Project } from "@/lib/stores/types";
 
 type TaskInput = Omit<Task, "id" | "completed">;
 
 export function TaskManager({ projectId }: { projectId?: string }) {
-  const {
-    tasks,
-    projects,
-    activeWorkspaceId,
-    createTask,
-    updateTask,
-    deleteTask,
-  } = useWorkspaceStore();
+  const { tasks, createTask, updateTask, deleteTask } = useTaskStore();
+  const { projects } = useProjectStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
@@ -106,7 +104,7 @@ function TaskForm({
 }: {
   task: Task | null;
   projectId?: string;
-  projects: ReturnType<typeof useWorkspaceStore>["projects"];
+  projects: Project[];
   onClose: () => void;
   onSave: (input: TaskInput) => void;
 }) {

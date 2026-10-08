@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import { MessageSquareText } from "lucide-react";
 import { OrbitWorkspace, PageHeader } from "@/components/orbit-workspace";
 import { KeyboardShortcutList } from "@/components/shortcuts-dialog";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useActivityStore } from "@/lib/stores/activity-store";
+import { useProfileStore } from "@/lib/stores/profile-store";
 
 const questions = [
   {
@@ -35,14 +36,15 @@ const questions = [
     category: "Data",
     question: "Where is my workspace data saved?",
     answer:
-      "This preview saves data in the current browser's local storage. It is not synced to other people or devices, and invitations and feedback are recorded locally rather than emailed or delivered to a support team.",
+      "This preview uses in-memory mock data. Changes are available during your current session and are not synced to other people or devices.",
   },
 ];
 
 const topics = ["Feature request", "Bug report", "Account question", "Other"];
 
 export default function HelpPage() {
-  const { profile, submitFeedback } = useWorkspaceStore();
+  const { profile } = useProfileStore();
+  const { submitFeedback } = useActivityStore();
   const [topic, setTopic] = useState(topics[0]);
   const [email, setEmail] = useState(profile.email);
   const [message, setMessage] = useState("");
@@ -53,7 +55,7 @@ export default function HelpPage() {
     if (!message.trim() || !email.trim()) return;
     submitFeedback({ topic, email: email.trim(), message: message.trim() });
     setMessage("");
-    setNotice("Feedback saved in this browser.");
+    setNotice("Feedback recorded for this session.");
   }
 
   return (

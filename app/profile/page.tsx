@@ -3,20 +3,17 @@
 import { useState, type FormEvent } from "react";
 import { Clock3, Copy, Mail, Send, Trash2, UserRound } from "lucide-react";
 import { OrbitWorkspace, PageHeader } from "@/components/orbit-workspace";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useActivityStore } from "@/lib/stores/activity-store";
+import { useProfileStore } from "@/lib/stores/profile-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 
 type ProfileTab = "profile" | "invites" | "activity";
 
 export default function ProfilePage() {
-  const {
-    profile,
-    updateProfile,
-    invitations,
-    inviteTeammate,
-    revokeInvitation,
-    activity,
-    loaded,
-  } = useWorkspaceStore();
+  const { profile, updateProfile } = useProfileStore();
+  const { invitations, inviteTeammate, revokeInvitation, activity } =
+    useActivityStore();
+  const { loaded } = useWorkspaceStore();
   const [tab, setTab] = useState<ProfileTab>("profile");
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
@@ -64,7 +61,7 @@ export default function ProfilePage() {
     const created = inviteTeammate(inviteEmail, inviteRole);
     setInviteNotice(
       created
-        ? "Invite saved in this browser. Email delivery is not connected."
+        ? "Invite prepared for this session. Email delivery is not connected."
         : "Check the email address or existing invitations.",
     );
     if (created) setInviteEmail("");

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Target } from "lucide-react";
 import { TaskManager } from "@/components/task-manager";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 
 export function ProjectDetail({ id }: { id: string }) {
-  const { projects, workspaces, loaded } = useWorkspaceStore();
+  const { projects } = useProjectStore();
+  const { workspaces, loaded } = useWorkspaceStore();
   const project = projects.find((item) => item.id === id);
   const workspace = workspaces.find((item) => item.id === project?.workspaceId);
 

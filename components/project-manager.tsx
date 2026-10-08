@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import {
-  useWorkspaceStore,
-  type WorkspaceProject,
-} from "@/lib/workspace-store";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useTaskStore } from "@/lib/stores/task-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import type { Project as WorkspaceProject } from "@/lib/stores/types";
 
 const projectColors = [
   { value: "bg-violet-500", label: "Violet", swatch: "bg-violet-500" },
@@ -18,14 +18,10 @@ const projectColors = [
 ];
 
 export function ProjectManager() {
-  const {
-    projects,
-    tasks,
-    activeWorkspaceId,
-    createProject,
-    updateProject,
-    deleteProject,
-  } = useWorkspaceStore();
+  const { projects, createProject, updateProject, deleteProject } =
+    useProjectStore();
+  const { tasks } = useTaskStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<WorkspaceProject | null>(null);
   const [deleting, setDeleting] = useState<WorkspaceProject | null>(null);

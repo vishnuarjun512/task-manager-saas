@@ -3,20 +3,18 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Check, Link2, Plus, Trash2, X } from "lucide-react";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import {
-  peopleDirectory,
-  useWorkspaceStore,
-  type ConnectionRequest,
-} from "@/lib/workspace-store";
+import { peopleDirectory, useConnectionStore } from "@/lib/stores/connection-store";
+import { useProfileStore } from "@/lib/stores/profile-store";
+import type { ConnectionRequest } from "@/lib/stores/types";
 
 export function ConnectionManager() {
   const {
     connections,
-    profile,
     sendConnectionRequest,
     updateConnectionStatus,
     deleteConnection,
-  } = useWorkspaceStore();
+  } = useConnectionStore();
+  const { profile } = useProfileStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [removing, setRemoving] = useState<ConnectionRequest | null>(null);
   const incomingCount = connections.filter(

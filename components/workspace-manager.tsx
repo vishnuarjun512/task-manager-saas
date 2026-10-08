@@ -3,19 +3,22 @@
 import { useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import { useWorkspaceStore, type Workspace } from "@/lib/workspace-store";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useTaskStore } from "@/lib/stores/task-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import type { Workspace } from "@/lib/stores/types";
 
 export function WorkspaceManager() {
   const {
     workspaces,
     activeWorkspaceId,
-    projects,
-    tasks,
     setActiveWorkspace,
     createWorkspace,
     updateWorkspace,
     deleteWorkspace,
   } = useWorkspaceStore();
+  const { projects } = useProjectStore();
+  const { tasks } = useTaskStore();
   const [editing, setEditing] = useState<Workspace | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Workspace | null>(null);

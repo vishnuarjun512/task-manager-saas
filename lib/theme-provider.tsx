@@ -15,7 +15,7 @@ type ThemeContextValue = {
   toggleTheme: () => void;
 };
 
-const THEME_CHANGE_EVENT = "orbit-theme-change";
+const THEME_CHANGE_EVENT = "orbit-theme-update";
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function subscribe(onChange: () => void) {
@@ -31,15 +31,10 @@ function getServerThemeSnapshot(): Theme {
   return "light";
 }
 
-function setTheme(theme: Theme) {
+function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.classList.toggle("light", theme === "light");
-  window.localStorage.setItem("orbit-theme", theme);
   window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
-}
-
-function toggleTheme() {
-  setTheme(getThemeSnapshot() === "dark" ? "light" : "dark");
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -50,14 +45,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("orbit-theme");
-    const initialTheme: Theme =
-      savedTheme === "light" || savedTheme === "dark"
-        ? savedTheme
-        : window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
-
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const initialTheme = mediaQuery.matches ? "dark" : "light";
     document.documentElement.classList.toggle("dark", initialTheme === "dark");
     document.documentElement.classList.toggle(
       "light",
@@ -65,6 +54,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     );
     window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   }, []);
+
+  function setTheme(nextTheme: Theme) {
+    applyTheme(nextTheme);
+  }
+
+  function toggleTheme() {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

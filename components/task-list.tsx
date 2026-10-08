@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import type { Task } from "@/lib/orbit-data";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useTaskStore } from "@/lib/stores/task-store";
 
 export function TaskList({
   items,
@@ -13,7 +13,7 @@ export function TaskList({
   onEdit?: (task: Task) => void;
   onDelete?: (task: Task) => void;
 }) {
-  const { tasks, toggleTask } = useWorkspaceStore();
+  const { tasks, toggleTask } = useTaskStore();
   const visibleTasks = items ?? tasks;
 
   if (visibleTasks.length === 0) {

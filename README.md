@@ -4,7 +4,7 @@ This document is the backend contract for the Orbit Workspace frontend. It descr
 
 ## Current Frontend Boundary
 
-The app currently has no authentication provider, API routes, or database. `WorkspaceStoreProvider` stores workspace data in the browser's `localStorage` under `orbit-workspace-data`; calendar placements are separately stored under `orbit-task-schedule`; theme selection uses `orbit-theme`.
+The app currently has no authentication provider, API routes, or database. Zustand stores hold mock workspace, project, task, profile, connection, and notification state in memory for the current page session; data resets on reload. Initial mock records are returned by `getMockWorkspaceData` in `lib/mock-api.ts`, a boundary that can be replaced with backend calls later. Theme selection follows the operating-system preference on load and remains in memory.
 
 The frontend currently supports:
 
@@ -15,13 +15,13 @@ The frontend currently supports:
 - Workspace invitation records, connection requests by public Orbit ID, profile activity, and feedback records.
 - Workspace preferences for notifications, timezone, week start, and active workspace.
 
-These records are local to one browser. Invitation records do not send email, feedback does not reach a support team, and connection requests do not reach another account. The hard-coded people directory and starter records are demo data and must be replaced by authenticated backend data.
+These records exist only in the current page session and reset on reload. Invitation records do not send email, feedback does not reach a support team, and connection requests do not reach another account. The hard-coded people directory and starter records are demo data and must be replaced by authenticated backend data.
 
 ## Public Pages and Theme
 
 - The landing page at `/` has Product, How it works, About, and Pricing sections. Its section links use smooth scrolling and respect reduced-motion preferences.
 - `/about` explains the product's purpose and guiding principles. Login and registration are available at `/login` and `/register`.
-- A shared theme provider applies the light/dark choice across the public pages and workspace. It follows the operating-system preference until the user chooses a theme, then saves that choice in `localStorage` under `orbit-theme`.
+- A shared theme provider applies the light/dark choice across the public pages and workspace. It follows the operating-system preference on load; a manual choice applies for the current page session.
 - Login and registration are UI scaffolding only. The workspace Logout link currently navigates to `/`; it does not end an authenticated session because authentication is not yet connected.
 
 ## Entity Relationships
@@ -327,7 +327,7 @@ Use pagination for tasks, activity, invitations, and connections. Return structu
 - Current project member initials are demo display values. Resolve real members to user IDs before writing `project_members`.
 - Current profile invitations store only email, role, status, and time. Production invitations need workspace scope, inviter, secure token lifecycle, expiry, and mail delivery.
 - Current connection rows duplicate recipient name/email for demo display. Production requests should reference user IDs; names/emails come from the authorized user lookup.
-- Calendar schedule state currently uses one date and optional time per task in local storage. If multi-session planning is required, model schedules as multiple task events instead of enforcing a unique `task_id`.
+- Calendar schedule state currently uses one date and optional time per task in the in-memory store. If multi-session planning is required, model schedules as multiple task events instead of enforcing a unique `task_id`.
 
 ## Suggested Implementation Order
 
@@ -337,4 +337,4 @@ Use pagination for tasks, activity, invitations, and connections. Return structu
 4. Task schedules and calendar endpoints.
 5. Connection requests by public Orbit ID.
 6. Workspace invitations with email delivery and acceptance.
-7. Feedback intake/support routing, then replace frontend local storage with API loading/mutations and loading/error states.
+7. Feedback intake/support routing, then replace the in-memory mock store with API loading/mutations and loading/error states.

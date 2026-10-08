@@ -12,11 +12,16 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/orbit-workspace";
 import { TaskList } from "@/components/task-list";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useConnectionStore } from "@/lib/stores/connection-store";
+import { useProjectStore } from "@/lib/stores/project-store";
+import { useTaskStore } from "@/lib/stores/task-store";
+import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 
 export function OverviewDashboard() {
-  const { tasks, projects, activeWorkspaceId, connections } =
-    useWorkspaceStore();
+  const { tasks } = useTaskStore();
+  const { projects } = useProjectStore();
+  const { activeWorkspaceId } = useWorkspaceStore();
+  const { connections } = useConnectionStore();
   const workspaceProjects = projects.filter(
     (project) => project.workspaceId === activeWorkspaceId,
   );

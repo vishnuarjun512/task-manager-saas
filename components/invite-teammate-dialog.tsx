@@ -2,10 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { DialogShell } from "@/components/dialog-shell";
-import { useWorkspaceStore } from "@/lib/workspace-store";
+import { useActivityStore } from "@/lib/stores/activity-store";
 
 export function InviteTeammateDialog({ onClose }: { onClose: () => void }) {
-  const { inviteTeammate, loaded } = useWorkspaceStore();
+  const { inviteTeammate } = useActivityStore();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Member");
   const [notice, setNotice] = useState("");
@@ -55,7 +55,7 @@ export function InviteTeammateDialog({ onClose }: { onClose: () => void }) {
           </select>
         </label>
         <p role="status" className="min-h-4 text-[10px] text-[#858b97]">
-          {notice || "Invites are saved locally; no email will be sent."}
+          {notice || "Invites are prepared for this session; no email will be sent."}
         </p>
         <div className="flex justify-end gap-2">
           <button
@@ -67,7 +67,7 @@ export function InviteTeammateDialog({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="submit"
-            disabled={!loaded}
+
             className="rounded-md bg-[#6755e8] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-50"
           >
             Create invite
