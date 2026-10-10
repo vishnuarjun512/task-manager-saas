@@ -32,15 +32,18 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
         ...state.activity,
       ].slice(0, 100),
     })),
+
   inviteTeammate: (email, role) => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return false;
     const profile = useProfileStore.getState().profile;
-    const hasConnection = useConnectionStore.getState().connections.some(
-      (connection) =>
-        connection.email.toLowerCase() === normalizedEmail &&
-        connection.status !== "declined",
-    );
+    const hasConnection = useConnectionStore
+      .getState()
+      .connections.some(
+        (connection) =>
+          connection.email.toLowerCase() === normalizedEmail &&
+          connection.status !== "declined",
+      );
     const invitationExists = get().invitations.some(
       (invitation) =>
         invitation.email === normalizedEmail && invitation.status === "Pending",

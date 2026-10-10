@@ -4,6 +4,9 @@ export type Workspace = {
   workspace_id: string;
   name: string;
   description: string;
+  created_at?: string;
+  created_by?: string;
+  updated_at?: string;
 };
 
 export type Project = {

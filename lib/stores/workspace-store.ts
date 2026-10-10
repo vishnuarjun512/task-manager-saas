@@ -15,6 +15,7 @@ type WorkspaceState = {
   loaded: boolean;
   setActiveWorkspace: (id: string) => void;
   createWorkspace: (input: WorkspaceInput) => void;
+  upsertWorkspace: (workspace: Workspace) => void;
   updateWorkspace: (id: string, input: WorkspaceInput) => void;
   deleteWorkspace: (id: string) => void;
 };
@@ -43,6 +44,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       .getState()
       .logActivity("Created workspace", workspace.name);
   },
+
+  upsertWorkspace: (workspace) =>
+    set((state) => {
+      const exists = state.workspaces.some(
+        (current) => current.workspace_id === workspace.workspace_id,
+      );
+      return {
+        workspaces: exists
+          ? state.workspaces.map((current) =>
+              current.workspace_id === workspace.workspace_id
+                ? { ...current, ...workspace }
+                : current,
+            )
+          : [...state.workspaces, workspace],
+      };
+    }),
 
   updateWorkspace: (id, input) =>
     set((state) => ({

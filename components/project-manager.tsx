@@ -242,7 +242,10 @@ function ProjectForm({
               className="min-w-0 rounded-md border border-[#e1e3e9] bg-white px-2.5 py-2.5 text-[11px] dark:border-white/10 dark:bg-[#181920]"
             >
               {workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
+                <option
+                  key={workspace.workspace_id}
+                  value={workspace.workspace_id}
+                >
                   {workspace.name}
                 </option>
               ))}
