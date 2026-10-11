@@ -13,6 +13,7 @@ type ProjectInput = Omit<Project, "id" | "progress" | "members">;
 type ProjectState = {
   projects: Project[];
   createProject: (input: ProjectInput) => void;
+  setProjects: (input: Project[]) => void;
   updateProject: (id: string, input: ProjectInput) => void;
   deleteProject: (id: string) => void;
 };
@@ -31,6 +32,18 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set((state) => ({ projects: [project, ...state.projects] }));
     useActivityStore.getState().logActivity("Created project", project.name);
   },
+
+  setProjects: (projects: Project[]) => {
+    // const project: Project = {
+    //   id: createStoreId("project"),
+    //   progress: 0,
+    //   members: [useProfileStore.getState().profile.id],
+    // };
+
+    set((state) => ({ projects: projects }));
+    // useActivityStore.getState().logActivity("Created project", project.name);
+  },
+
   updateProject: (id, input) => {
     if (!get().projects.some((project) => project.id === id)) return;
     set((state) => ({

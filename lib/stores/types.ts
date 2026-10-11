@@ -13,11 +13,12 @@ export type Project = {
   id: string;
   name: string;
   description: string;
-  color: string;
+  project_color?: string;
   progress: number;
   due: string;
   members: string[];
-  workspaceId: string;
+  created_by?: string;
+  workspace_id: string;
 };
 
 export type ConnectionRequest = {

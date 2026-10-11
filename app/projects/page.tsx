@@ -1,5 +1,5 @@
 import { OrbitWorkspace, PageHeader } from "@/components/orbit-workspace";
-import { ProjectManager } from "@/components/project-manager";
+import { ProjectManager } from "./(components)/project-manager";
 
 export default function ProjectsPage() {
   return (

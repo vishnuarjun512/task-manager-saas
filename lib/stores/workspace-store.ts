@@ -73,7 +73,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (state.workspaces.length < 2) return;
     const projects = useProjectStore
       .getState()
-      .projects.filter((project) => project.workspaceId === id);
+      .projects.filter((project) => project.workspace_id === id);
     projects.forEach((project) =>
       useProjectStore.getState().deleteProject(project.id),
     );

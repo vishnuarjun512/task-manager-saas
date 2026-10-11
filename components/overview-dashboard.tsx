@@ -27,7 +27,7 @@ export function OverviewDashboard() {
   const { connections } = useConnectionStore();
 
   const workspaceProjects = projects.filter(
-    (project) => project.workspaceId === activeWorkspaceId,
+    (project) => project.workspace_id === activeWorkspaceId,
   );
   const projectIds = useMemo(
     () => new Set(workspaceProjects.map((project) => project.id)),
@@ -82,6 +82,7 @@ export function OverviewDashboard() {
 
   const { execute } = useApi();
   const { upsertWorkspace } = useWorkspaceStore();
+
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
@@ -219,7 +220,9 @@ export function OverviewDashboard() {
               className="rounded-lg border border-[#e7e9ee] bg-white p-4 transition hover:border-[#c9c4f4] dark:border-white/10 dark:bg-[#181920] dark:hover:border-white/20"
             >
               <div className="flex items-center gap-2">
-                <span className={`size-2 rounded-full ${project.color}`} />
+                <span
+                  className={`size-2 rounded-full ${project.project_color}`}
+                />
                 <span className="truncate text-[11px] font-semibold">
                   {project.name}
                 </span>
@@ -232,7 +235,7 @@ export function OverviewDashboard() {
               </p>
               <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#f0f1f4]">
                 <div
-                  className={`h-full ${project.color}`}
+                  className={`h-full ${project.project_color}`}
                   style={{ width: `${project.progress}%` }}
                 />
               </div>

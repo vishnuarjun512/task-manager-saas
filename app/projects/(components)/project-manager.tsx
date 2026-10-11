@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import type { Project as WorkspaceProject } from "@/lib/stores/types";
+import { useApi } from "@/lib/use-api";
+import { apiFetch } from "@/lib/api-fetch";
 
 const projectColors = [
   { value: "bg-violet-500", label: "Violet", swatch: "bg-violet-500" },
@@ -18,7 +21,7 @@ const projectColors = [
 ];
 
 export function ProjectManager() {
-  const { projects, createProject, updateProject, deleteProject } =
+  const { projects, setProjects, createProject, updateProject, deleteProject } =
     useProjectStore();
   const { tasks } = useTaskStore();
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -26,15 +29,68 @@ export function ProjectManager() {
   const [editing, setEditing] = useState<WorkspaceProject | null>(null);
   const [deleting, setDeleting] = useState<WorkspaceProject | null>(null);
   const currentProjects = projects.filter(
-    (project) => project.workspaceId === activeWorkspaceId,
+    (project) => project.workspace_id === activeWorkspaceId,
   );
 
-  function saveProject(input: ProjectInput) {
-    if (editing) updateProject(editing.id, input);
-    else createProject(input);
+  const { execute } = useApi();
+  async function saveProject(input: ProjectInput): Promise<void> {
+    console.log(input);
+    if (editing) {
+      updateProject(editing.id, input);
+    } else {
+      const request: ProjectCreateRequest = {
+        workspace_id: input.workspace_id,
+        name: input.name,
+        description: input.description || null,
+        project_color: input.project_color ?? null,
+        due_date: input.due === "No due date" ? "" : input.due,
+      };
+
+      try {
+        await execute(() => apiFetch("/projects", "POST", request));
+        createProject(input);
+        toast.success("Project created");
+      } catch (error) {
+        toast.error("Project creation failed", {
+          description:
+            error instanceof Error ? error.message : "Something went wrong.",
+        });
+        return;
+      }
+    }
     setEditing(null);
     setCreating(false);
   }
+
+  async function confirmDeleteProject(project: WorkspaceProject) {
+    try {
+      await execute(() =>
+        apiFetch(`/projects/${encodeURIComponent(project.id)}`, "DELETE"),
+      );
+      deleteProject(project.id);
+      setDeleting(null);
+      toast.success("Project deleted");
+    } catch (error) {
+      toast.error("Project deletion failed", {
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
+    }
+  }
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!activeWorkspaceId) {
+        return;
+      }
+      const data = await execute(() =>
+        apiFetch(`/projects/${encodeURIComponent(activeWorkspaceId)}`, "GET"),
+      );
+      console.log(data);
+      setProjects(data.projects);
+    };
+    fetchProjects();
+  }, []);
 
   return (
     <section className="mt-7">
@@ -83,7 +139,7 @@ export function ProjectManager() {
                         className="flex items-center gap-2 text-[12px] font-medium hover:text-[#6755e8]"
                       >
                         <span
-                          className={`size-2 rounded-full ${project.color}`}
+                          className={`size-2 rounded-full ${project.project_color}`}
                         />
                         {project.name}
                       </Link>
@@ -98,7 +154,7 @@ export function ProjectManager() {
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#f0f1f4]">
                           <div
-                            className={`h-full ${project.color}`}
+                            className={`h-full ${project.project_color}`}
                             style={{ width: `${project.progress}%` }}
                           />
                         </div>
@@ -163,10 +219,7 @@ export function ProjectManager() {
           title={`Delete ${deleting.name}?`}
           description="Tasks assigned to this project will also be removed. This action cannot be undone."
           onClose={() => setDeleting(null)}
-          onConfirm={() => {
-            deleteProject(deleting.id);
-            setDeleting(null);
-          }}
+          onConfirm={() => void confirmDeleteProject(deleting)}
         />
       )}
     </section>
@@ -175,6 +228,14 @@ export function ProjectManager() {
 
 type ProjectInput = Omit<WorkspaceProject, "id" | "progress" | "members">;
 
+type ProjectCreateRequest = {
+  workspace_id: string;
+  name: string;
+  description: string | null;
+  project_color: string | null;
+  due_date: string;
+};
+
 function ProjectForm({
   project,
   onClose,
@@ -182,27 +243,36 @@ function ProjectForm({
 }: {
   project: WorkspaceProject | null;
   onClose: () => void;
-  onSave: (input: ProjectInput) => void;
+  onSave: (input: ProjectInput) => Promise<void>;
 }) {
   const { workspaces, activeWorkspaceId } = useWorkspaceStore();
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
   const [workspaceId, setWorkspaceId] = useState(
-    project?.workspaceId ?? activeWorkspaceId,
+    project?.workspace_id ?? activeWorkspaceId,
   );
-  const [color, setColor] = useState(project?.color ?? projectColors[0].value);
+  const [color, setColor] = useState(
+    project?.project_color ?? projectColors[0].value,
+  );
   const [due, setDue] = useState(project ? dateInputValue(project.due) : "");
+  const [isSaving, setIsSaving] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim()) return;
-    onSave({
-      name: name.trim(),
-      description: description.trim(),
-      workspaceId,
-      color,
-      due: due || "No due date",
-    });
+    const cleanName = name.trim();
+    if (cleanName.length < 3) return;
+    setIsSaving(true);
+    try {
+      await onSave({
+        name: cleanName,
+        description: description.trim(),
+        workspace_id: workspaceId,
+        project_color: color,
+        due: due || "No due date",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -217,7 +287,8 @@ function ProjectForm({
           <input
             autoFocus
             required
-            maxLength={80}
+            minLength={3}
+            maxLength={100}
             value={name}
             onChange={(event) => setName(event.target.value)}
             className="rounded-md border border-[#e1e3e9] bg-transparent px-3 py-2.5 text-[12px] outline-none focus:border-[#6755e8] dark:border-white/10"
@@ -282,15 +353,23 @@ function ProjectForm({
           <button
             type="button"
             onClick={onClose}
+            disabled={isSaving}
             className="rounded-md px-3 py-2 text-[11px] text-[#777d89] hover:bg-[#f3f4f6]"
           >
             Cancel
           </button>
           <button
             type="submit"
+            disabled={isSaving}
             className="rounded-md bg-[#6755e8] px-3 py-2 text-[11px] font-semibold text-white"
           >
-            {project ? "Save changes" : "Create project"}
+            {isSaving
+              ? project
+                ? "Saving..."
+                : "Creating..."
+              : project
+                ? "Save changes"
+                : "Create project"}
           </button>
         </div>
       </form>

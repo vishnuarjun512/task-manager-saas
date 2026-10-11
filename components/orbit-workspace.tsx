@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   BriefcaseBusiness,
@@ -72,7 +72,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
     (workspace) => workspace.workspace_id === activeWorkspaceId,
   );
   const workspaceProjects = projects.filter(
-    (project) => project.workspaceId === activeWorkspaceId,
+    (project) => project.workspace_id === activeWorkspaceId,
   );
   const workspaceProjectIds = new Set(
     workspaceProjects.map((project) => project.id),
@@ -85,6 +85,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
     (connection) =>
       connection.direction === "incoming" && connection.status === "pending",
   ).length;
+
   const currentLabel = useMemo(() => {
     const route = navigation.find((item) => item.href === pathname);
     if (route) return route.label;
@@ -129,6 +130,13 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
       setProfileIdCopied(false);
     }
   }
+
+  const router = useRouter();
+
+  const Logout = () => {
+    router.push("/");
+    clearUser();
+  };
 
   return (
     <main className="min-h-screen bg-[#f8f9fb] text-[#20232d] dark:bg-[#111218] dark:text-[#f4f4f6]">
@@ -225,7 +233,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                 className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-[12px] ${pathname === `/projects/${project.id}` ? "bg-[#f0edff] text-[#5b49d4] dark:bg-white/10 dark:text-[#c6bdff]" : "text-[#737987] hover:bg-[#f5f6f8] dark:hover:bg-white/5"}`}
               >
                 <span
-                  className={`size-2 shrink-0 rounded-full ${project.color}`}
+                  className={`size-2 shrink-0 rounded-full ${project.project_color}`}
                 />
                 <span className="truncate">{project.name}</span>
               </Link>
@@ -326,16 +334,17 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                   >
                     <Command size={14} /> Keyboard shortcuts
                   </button>
-                  <Link
-                    href="/"
+
+                  <button
+                    type="button"
                     onClick={() => {
                       setProfileOpen(false);
-                      clearUser();
+                      Logout();
                     }}
                     className="mt-1 flex w-full items-center gap-2 rounded-md border-t border-[#eff0f3] px-2 py-2 text-left text-[#b93d3d] transition-colors hover:bg-[#fff1f1] hover:text-[#9f2d2d] dark:border-white/10 dark:text-[#f28b82] dark:hover:bg-red-500/10 dark:hover:text-[#ffb4ab]"
                   >
                     <PowerOffIcon size={14} /> Logout
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
@@ -618,7 +627,7 @@ export function ProjectCard({ project }: { project: Project }) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
           <div
-            className={`flex size-8 items-center justify-center rounded-lg ${project.color} text-white`}
+            className={`flex size-8 items-center justify-center rounded-lg ${project.project_color} text-white`}
           >
             <Target size={15} />
           </div>
@@ -636,7 +645,7 @@ export function ProjectCard({ project }: { project: Project }) {
       </p>
       <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#f0f1f4]">
         <div
-          className={`h-full rounded-full ${project.color}`}
+          className={`h-full rounded-full ${project.project_color}`}
           style={{ width: `${project.progress}%` }}
         />
       </div>
