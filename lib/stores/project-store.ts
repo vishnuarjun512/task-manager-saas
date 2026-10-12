@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { getMockWorkspaceData } from "@/lib/mock-api";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { createStoreId } from "@/lib/stores/ids";
@@ -35,7 +36,8 @@ type ProjectState = {
 
 const initialData = getMockWorkspaceData();
 
-export const useProjectStore = create<ProjectState>((set, get) => ({
+export const useProjectStore = create<ProjectState>()(
+  persist((set, get) => ({
   projects: initialData.projects,
   projectMembers: initialData.project_members,
   projectRoles: initialData.project_roles,
@@ -321,7 +323,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     useTaskStore.getState().deleteProjectTasks(id);
     useActivityStore.getState().logActivity("Deleted project", project.name);
   },
-}));
+  }), {
+    name: "orbit-project-store",
+    skipHydration: true,
+    partialize: (state) => ({
+      projects: state.projects,
+      projectMembers: state.projectMembers,
+      projectRoles: state.projectRoles,
+    }),
+  }),
+);
 
 function makeMemberships(
   project: Project,

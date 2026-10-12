@@ -1,10 +1,10 @@
 # Orbit Workspace Backend Handoff
 
-This document is the backend contract for the Orbit Workspace frontend. It describes the user workflows, suggested relational tables, API boundaries, and the difference between current browser-only behavior and production behavior.
+This document describes Orbit Workspace, its core data model, and the backend behaviors the application depends on. See [API_ENDPOINTS.md](./API_ENDPOINTS.md) for route paths, request/response JSON, and frontend call timing.
 
 ## Current Frontend Boundary
 
-The app currently has no authentication provider, API routes, or database. Zustand stores hold mock workspace, project, task, profile, connection, and notification state in memory for the current page session; data resets on reload. Initial mock records are returned by `getMockWorkspaceData` in `lib/mock-api.ts`, a boundary that can be replaced with backend calls later. Theme selection follows the operating-system preference on load and remains in memory.
+The app has no backend implementation in this repository. When `NEXT_PUBLIC_API_URL` is not configured, Zustand uses seeded mock data; project and task changes persist in browser storage. When the URL is configured, authentication, account bootstrap, workspace, project, task, and connection screens call the backend for supported reads and writes. Invitations, notification state, activity, and calendar scheduling still use local demo state.
 
 The frontend currently supports:
 
@@ -15,14 +15,14 @@ The frontend currently supports:
 - Workspace invitation records, connection requests by public Orbit ID, profile activity, and feedback records.
 - Workspace preferences for notifications, timezone, week start, and active workspace.
 
-These records exist only in the current page session and reset on reload. Invitation records do not send email, feedback does not reach a support team, and connection requests do not reach another account. The hard-coded people directory and starter records are demo data and must be replaced by authenticated backend data.
+Invitation records do not send email, feedback does not reach a support team, and profile editing/preferences are not yet server-backed. The hard-coded people directory and starter records remain for mock mode and should be replaced by authenticated backend data.
 
 ## Public Pages and Theme
 
 - The landing page at `/` has Product, How it works, About, and Pricing sections. Its section links use smooth scrolling and respect reduced-motion preferences.
 - `/about` explains the product's purpose and guiding principles. Login and registration are available at `/login` and `/register`.
 - A shared theme provider applies the light/dark choice across the public pages and workspace. It follows the operating-system preference on load; a manual choice applies for the current page session.
-- Login and registration are UI scaffolding only. The workspace Logout link currently navigates to `/`; it does not end an authenticated session because authentication is not yet connected.
+- Login, registration, and password reset call the configured backend. The workspace Logout link currently navigates to `/`; it does not yet end the server session.
 
 ## Entity Relationships
 
@@ -249,92 +249,41 @@ Do not put secrets, invitation tokens, or unnecessary personal data in activity 
 | `created_at`  | TIMESTAMPTZ                         |                                                                        |
 | `updated_at`  | TIMESTAMPTZ                         |                                                                        |
 
-## API Workflows
+## Backend Behaviors
 
-All protected routes should derive the actor from the authenticated session, not from a client-supplied `user_id`. Check workspace membership and role on every workspace-scoped request.
+All protected operations must derive the actor from the authenticated session, never a client-supplied user ID. Check workspace membership and project permissions for every read and write. Treat browser-cached state as a display cache, not an authorization source.
 
-| Workflow              | Suggested endpoint                                                                                                                                                                                   | Behavior                                                                                                                                               |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| App bootstrap         | `GET /api/me`                                                                                                                                                                                        | Return current user/profile, preferences, workspace memberships, and active workspace.                                                                 |
-| Edit profile          | `PATCH /api/me/profile`                                                                                                                                                                              | Update display name, role title, pronouns, bio, availability, status message, and avatar URL. Record a profile activity event.                         |
-| Update preferences    | `PATCH /api/me/preferences`                                                                                                                                                                          | Save notification choices, timezone, week start, theme, and active workspace. Verify active workspace membership.                                      |
-| Workspace CRUD        | `GET/POST /api/workspaces`, `GET/PATCH/DELETE /api/workspaces/:id`                                                                                                                                   | List only joined workspaces. Creating makes the caller owner/member. Deletion should archive or require explicit cascade confirmation.                 |
-| Members               | `GET/POST/DELETE /api/workspaces/:id/members`                                                                                                                                                        | Enforce role permissions. Invitations create membership only after acceptance.                                                                         |
-| Project CRUD          | `GET/POST /api/workspaces/:id/projects`, `GET/PATCH/DELETE /api/projects/:id`                                                                                                                        | Scope every read/write to workspace membership. Renaming a project does not break tasks because tasks reference `project_id`.                          |
-| Task CRUD             | `GET/POST /api/projects/:id/tasks`, `GET/PATCH/DELETE /api/tasks/:id`                                                                                                                                | Validate status/priority and workspace membership. Completing sets `status = 'done'` and `completed_at`.                                               |
-| Schedule a task       | `PUT/DELETE /api/tasks/:id/schedule`                                                                                                                                                                 | Upsert/remove `task_schedules`; preserve task deadline separately.                                                                                     |
-| Find a person         | `GET /api/users?public_id=ORB-2048`                                                                                                                                                                  | Return only safe directory fields; never expose private account data.                                                                                  |
-| Connection requests   | `POST /api/connections/requests`, `GET /api/connections/requests`, `POST /api/connections/requests/:id/accept`, `POST /api/connections/requests/:id/decline`, `DELETE /api/connections/requests/:id` | Sender is current user. Recipient must resolve by public ID. Only recipient accepts/declines; sender may cancel pending request.                       |
-| Workspace invitations | `POST/GET /api/workspaces/:id/invitations`, `POST /api/invitations/:token/accept`, `DELETE /api/invitations/:id`                                                                                     | Check inviter permission, normalize email, create expiring one-time token, send mail, add `workspace_members` row on accept, and revoke/cancel safely. |
-| Activity              | `GET /api/me/activity?cursor=...` or `GET /api/workspaces/:id/activity?cursor=...`                                                                                                                   | Return newest-first, paginated events visible to the actor/member.                                                                                     |
-| Feedback              | `POST /api/feedback`                                                                                                                                                                                 | Validate topic/message, store submission, return an ID and received status; connect to an internal support queue separately.                           |
+Create and update records transactionally with their relationship rows and audit events. Prefer archiving workspaces and projects or require explicit confirmation before cascading deletion. Validate status, priority, dates, and relation ownership at the API boundary; return structured errors with actionable codes and messages.
 
-Use pagination for tasks, activity, invitations, and connections. Return structured validation errors (for example `409 duplicate_pending_request`, `403 insufficient_role`, `422 invalid_status`) so the UI can show actionable messages.
+For route paths, request and response JSON, frontend call timing, and features that still need backend integration, see [API_ENDPOINTS.md](./API_ENDPOINTS.md).
 
 ## End-to-End Flows
 
-### Sign-in and bootstrap
-
-1. Authenticate using an external identity provider or a secure server-side session.
-2. `GET /api/me` returns profile, user preferences, and workspace memberships.
-3. The frontend selects the saved active workspace only if the user is still a member; otherwise use the first accessible workspace.
-4. Fetch projects/tasks for that workspace. Never trust the browser's cached membership or role as authorization.
-
-### Create workspace, project, and task
-
-1. `POST /api/workspaces` creates a workspace and owner membership in one transaction.
-2. `POST /api/workspaces/:id/projects` verifies owner/admin/member permission and creates the project.
-3. `POST /api/projects/:id/tasks` creates the task with a stable `project_id`, creator, and optional assignee.
-4. Each successful mutation writes an `activity_events` row in the same transaction or through a reliable outbox.
-5. Rename operations update display data only; foreign keys remain unchanged. Deletes should default to archive/restrict, not silently remove child tasks.
-
-### Schedule work
-
-1. User selects or drags a task to a calendar date.
-2. `PUT /api/tasks/:id/schedule` validates access, date, time, and timezone, then upserts one schedule row.
-3. Calendar displays `scheduled_date` and optional `scheduled_time`; task `due_at` remains an independent deadline.
-4. Changing week start/timezone updates `user_preferences`, not the schedule's stored date.
-
-### Invite a workspace teammate
-
-1. `POST /api/workspaces/:id/invitations` sends email and role; server verifies the inviter can invite.
-2. Server stores a hashed, expiring token and sends a one-time URL through an email provider.
-3. Invitee authenticates and accepts the token; in one transaction, mark invitation accepted and create/update `workspace_members`.
-4. Revoked, expired, duplicate, or already-member invitations return explicit errors.
-5. The current profile form only creates a local pending record. Replace this response with the server-created invitation and delivery state.
-
-### Connect two Orbit users
-
-1. Search an exact public ID with `GET /api/users?public_id=...`.
-2. `POST /api/connections/requests` stores current user as requester and matched account as recipient.
-3. Recipient sees the request in Inbox and accepts or declines it.
-4. Requester may cancel while pending. Prevent self-requests and duplicate/reverse pending requests.
-5. Connection requests do not grant workspace membership.
-
-### Activity, profile, and feedback
-
-1. Profile changes use `PATCH /api/me/profile`; activity records the edit without logging sensitive fields.
-2. Task/project/invite/connection actions create activity events with actor, entity, action, and timestamp.
-3. Activity is read newest-first with a cursor; the frontend can continue displaying an empty state if there is no history.
-4. Feedback is submitted to `/api/feedback`; the backend stores it and routes it to support. The current form only stores locally.
+- Authenticate using a secure server-side session, then load the signed-in profile, preferences, and workspace memberships.
+- Select the saved active workspace only if membership is still valid, then load that workspace's projects and tasks.
+- Create or update projects and tasks transactionally. Keep task relationships based on stable project IDs rather than display names.
+- Complete tasks by setting canonical status to `done` and recording `completed_at`; keep calendar scheduling separate from a task deadline.
+- Create workspace invitations only after checking inviter permissions; create membership after the invitee accepts.
+- Keep user-to-user connections distinct from workspace membership. Prevent self-requests and duplicate or reverse pending requests.
+- Write activity events for important actions without recording secrets or unnecessary personal information.
 
 ## Frontend-to-Backend Mapping Notes
 
-- `WorkspaceProject.workspaceId` → `projects.workspace_id`.
+- `WorkspaceProject.workspace_id` → `projects.workspace_id`.
 - `Task.projectId` → `tasks.project_id`; `Task.project` is display text and should not be treated as a key.
-- `Task.completed` should be derived from canonical task status and `completed_at` after API migration.
-- Current due strings include legacy labels such as `Today`, `Tomorrow`, and `Oct 08`; normalize known values to `due_at` and preserve unparseable labels for manual cleanup rather than guessing a date.
+- `Task.completed` should be derived from canonical task status and `completed_at`.
+- Task and project dates use database `DATE` or `TIMESTAMPTZ` values; do not persist presentation labels as dates.
 - Current project member initials are demo display values. Resolve real members to user IDs before writing `project_members`.
 - Current profile invitations store only email, role, status, and time. Production invitations need workspace scope, inviter, secure token lifecycle, expiry, and mail delivery.
 - Current connection rows duplicate recipient name/email for demo display. Production requests should reference user IDs; names/emails come from the authorized user lookup.
-- Calendar schedule state currently uses one date and optional time per task in the in-memory store. If multi-session planning is required, model schedules as multiple task events instead of enforcing a unique `task_id`.
+- Calendar schedule state currently uses one date and optional time per task in browser storage. If multi-session planning is required, model schedules as multiple task events instead of enforcing a unique `task_id`.
 
 ## Suggested Implementation Order
 
 1. Authentication/session and `users`/`user_profiles`.
 2. Workspaces, memberships, authorization checks, and preferences.
-3. Projects, tasks, CRUD endpoints, and transaction-safe activity events.
-4. Task schedules and calendar endpoints.
+3. Projects, tasks, and transaction-safe activity events.
+4. Task schedules and calendar persistence.
 5. Connection requests by public Orbit ID.
 6. Workspace invitations with email delivery and acceptance.
-7. Feedback intake/support routing, then replace the in-memory mock store with API loading/mutations and loading/error states.
+7. Feedback intake/support routing, then replace remaining local demo stores with API loading/mutations and loading/error states.

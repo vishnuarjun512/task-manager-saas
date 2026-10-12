@@ -16,7 +16,30 @@ export function useApi() {
         const response = await apiCall();
 
         if (!response.ok) {
-          throw new Error("Something went wrong.");
+          const responseText = await response.text();
+          let responseBody: unknown;
+          try {
+            responseBody = responseText.trim()
+              ? JSON.parse(responseText)
+              : undefined;
+          } catch {
+            throw new Error(
+              responseText || response.statusText || "Request failed.",
+            );
+          }
+          const message =
+            typeof responseBody === "object" &&
+            responseBody !== null &&
+            "message" in responseBody &&
+            typeof responseBody.message === "string"
+              ? responseBody.message
+              : typeof responseBody === "object" &&
+                  responseBody !== null &&
+                  "error" in responseBody &&
+                  typeof responseBody.error === "string"
+                ? responseBody.error
+                : response.statusText || "Request failed.";
+          throw new Error(message);
         }
 
         const responseText = await response.text();

@@ -76,6 +76,11 @@ export type Task = {
   completed: boolean;
 };
 
+export type TaskInput = Omit<
+  Task,
+  "id" | "completed" | "completed_at" | "created_at" | "updated_at"
+>;
+
 export const projectData: Project[] = [
   {
     id: "website-redesign",

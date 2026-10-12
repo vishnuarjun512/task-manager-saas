@@ -38,6 +38,7 @@ import { useProfileStore } from "@/lib/stores/profile-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import { useBackendBootstrap } from "@/lib/stores/use-backend-bootstrap";
 import type { Project, Workspace } from "@/lib/stores/types";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -51,6 +52,7 @@ const navigation = [
 ];
 
 export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
+  useBackendBootstrap();
   const pathname = usePathname();
   const clearUser = useAuthStore((state) => state.clearUser);
   const { workspaces, activeWorkspaceId, setActiveWorkspace } =
@@ -123,7 +125,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
 
   async function copyProfileId() {
     try {
-      await navigator.clipboard.writeText(profile.id);
+      await navigator.clipboard.writeText(profile.public_id ?? profile.id);
       setProfileIdCopied(true);
       window.setTimeout(() => setProfileIdCopied(false), 1600);
     } catch {
@@ -296,7 +298,9 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                         <Copy size={12} />
                       )}
                       <span className="flex-1">
-                        {profileIdCopied ? "Copied Orbit ID" : profile.id}
+                        {profileIdCopied
+                          ? "Copied Orbit ID"
+                          : profile.public_id ?? profile.id}
                       </span>
                     </button>
                   </div>

@@ -12,6 +12,8 @@ export class SessionExpiredError extends Error {
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 let refreshRequest: Promise<boolean> | null = null;
 
+export const isApiConfigured = Boolean(apiBaseUrl);
+
 export async function apiFetch(
   path: string,
   method: ApiMethod,

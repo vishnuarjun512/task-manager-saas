@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import { apiFetch, SessionExpiredError } from "@/lib/api-fetch";
+import {
+  apiFetch,
+  isApiConfigured,
+  SessionExpiredError,
+} from "@/lib/api-fetch";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
@@ -20,9 +24,70 @@ export function WorkspaceManager() {
     createWorkspace,
     updateWorkspace,
     deleteWorkspace,
+    upsertWorkspace,
   } = useWorkspaceStore();
   const { projects } = useProjectStore();
   const { tasks } = useTaskStore();
+  useEffect(() => {
+    if (!isApiConfigured) return;
+    let cancelled = false;
+    execute(() => apiFetch("/workspace", "GET"))
+      .then((data) => {
+        const records =
+          typeof data === "object" &&
+          data !== null &&
+          "workspaces" in data
+            ? data.workspaces
+            : null;
+        if (!Array.isArray(records)) {
+          throw new Error(
+            "The workspace response did not include a workspaces array.",
+          );
+        }
+        records.forEach((item) => {
+          if (typeof item !== "object" || item === null) {
+            throw new Error("The response contains an invalid workspace.");
+          }
+          const record = item as Record<string, unknown>;
+          const id = record.workspace_id ?? record.id;
+          if (typeof id !== "string" || typeof record.name !== "string") {
+            throw new Error("The response contains an invalid workspace.");
+          }
+          if (!cancelled) {
+            upsertWorkspace({
+              workspace_id: id,
+              name: record.name,
+              description:
+                typeof record.description === "string"
+                  ? record.description
+                  : "",
+              created_at:
+                typeof record.created_at === "string"
+                  ? record.created_at
+                  : undefined,
+              created_by:
+                typeof record.created_by === "string"
+                  ? record.created_by
+                  : undefined,
+              updated_at:
+                typeof record.updated_at === "string"
+                  ? record.updated_at
+                  : undefined,
+            });
+          }
+        });
+      })
+      .catch((error: unknown) => {
+        if (cancelled || error instanceof SessionExpiredError) return;
+        toast.error("Workspaces could not be loaded", {
+          description:
+            error instanceof Error ? error.message : "Something went wrong.",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [execute, upsertWorkspace]);
   const [editing, setEditing] = useState<Workspace | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Workspace | null>(null);
@@ -30,17 +95,58 @@ export function WorkspaceManager() {
   async function saveWorkspace(
     input: Pick<Workspace, "name" | "description">,
   ): Promise<void> {
-    if (editing) {
-      updateWorkspace(editing.workspace_id, input);
-    } else {
+    if (editing && isApiConfigured) {
       try {
         await execute(() =>
+          apiFetch(
+            `/workspace/${encodeURIComponent(editing.workspace_id)}`,
+            "PATCH",
+            input,
+          ),
+        );
+        updateWorkspace(editing.workspace_id, input);
+        toast.success("Workspace updated");
+      } catch (error) {
+        if (error instanceof SessionExpiredError) return;
+        toast.error("Workspace update failed", {
+          description:
+            error instanceof Error ? error.message : "Something went wrong.",
+        });
+        return;
+      }
+    } else if (editing) {
+      updateWorkspace(editing.workspace_id, input);
+    } else if (!isApiConfigured) {
+      createWorkspace(input);
+    } else {
+      try {
+        const data = await execute(() =>
           apiFetch("/workspace", "POST", {
             name: input.name,
             description: input.description,
           }),
         );
-        createWorkspace(input);
+        const record =
+          typeof data === "object" && data !== null && "workspace" in data
+            ? data.workspace
+            : data;
+        if (typeof record !== "object" || record === null) {
+          throw new Error("The response did not include the created workspace.");
+        }
+        const workspace = record as Record<string, unknown>;
+        const workspaceId = workspace.workspace_id ?? workspace.id;
+        if (typeof workspaceId !== "string" || typeof workspace.name !== "string") {
+          throw new Error("The response contains an invalid workspace.");
+        }
+        upsertWorkspace({
+          workspace_id: workspaceId,
+          name: workspace.name,
+          description:
+            typeof workspace.description === "string"
+              ? workspace.description
+              : input.description,
+        });
+        setActiveWorkspace(workspaceId);
         toast.success("Workspace created");
       } catch (error) {
         if (error instanceof SessionExpiredError) return;
@@ -53,6 +159,28 @@ export function WorkspaceManager() {
     }
     setEditing(null);
     setCreating(false);
+  }
+
+  async function confirmDeleteWorkspace(workspace: Workspace) {
+    if (isApiConfigured) {
+      try {
+        await execute(() =>
+          apiFetch(
+            `/workspace/${encodeURIComponent(workspace.workspace_id)}`,
+            "DELETE",
+          ),
+        );
+      } catch (error) {
+        if (error instanceof SessionExpiredError) return;
+        toast.error("Workspace deletion failed", {
+          description:
+            error instanceof Error ? error.message : "Something went wrong.",
+        });
+        return;
+      }
+    }
+    deleteWorkspace(workspace.workspace_id);
+    setDeleting(null);
   }
 
   return (
@@ -185,10 +313,7 @@ export function WorkspaceManager() {
           title={`Delete ${deleting.name}?`}
           description="Projects and tasks in this workspace will also be removed from this browser."
           onClose={() => setDeleting(null)}
-          onConfirm={() => {
-            deleteWorkspace(deleting.workspace_id);
-            setDeleting(null);
-          }}
+          onConfirm={() => void confirmDeleteWorkspace(deleting)}
         />
       )}
     </section>

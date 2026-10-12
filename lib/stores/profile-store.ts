@@ -7,6 +7,7 @@ import type { Profile } from "@/lib/stores/types";
 
 type ProfileState = {
   profile: Profile;
+  setProfile: (profile: Profile) => void;
   updateProfile: (profile: Profile) => void;
 };
 
@@ -14,6 +15,7 @@ const initialData = getMockWorkspaceData();
 
 export const useProfileStore = create<ProfileState>((set) => ({
   profile: initialData.profile,
+  setProfile: (profile) => set({ profile }),
   updateProfile: (profile) => {
     set({ profile });
     useActivityStore.getState().logActivity("Updated profile", profile.name);

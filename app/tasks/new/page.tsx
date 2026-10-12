@@ -1,5 +1,5 @@
 import { OrbitWorkspace } from "@/components/orbit-workspace";
-import { TaskEditorPage } from "@/components/task-manager";
+import { TaskEditorPage } from "@/components/task-editor-page";
 
 export default async function NewTaskPage({
   searchParams,

@@ -13,6 +13,7 @@ type WorkspaceState = {
   workspaces: Workspace[];
   activeWorkspaceId: string;
   loaded: boolean;
+  setWorkspaces: (workspaces: Workspace[], activeWorkspaceId?: string) => void;
   setActiveWorkspace: (id: string) => void;
   createWorkspace: (input: WorkspaceInput) => void;
   upsertWorkspace: (workspace: Workspace) => void;
@@ -26,6 +27,21 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workspaces: initialData.workspaces,
   activeWorkspaceId: initialData.activeWorkspaceId,
   loaded: true,
+
+  setWorkspaces: (workspaces, preferredActiveId) =>
+    set((state) => ({
+      workspaces,
+      activeWorkspaceId:
+        workspaces.find(
+          (workspace) => workspace.workspace_id === preferredActiveId,
+        )?.workspace_id ??
+        workspaces.find(
+          (workspace) =>
+            workspace.workspace_id === state.activeWorkspaceId,
+        )?.workspace_id ??
+        workspaces[0]?.workspace_id ??
+        "",
+    })),
 
   setActiveWorkspace: (id) =>
     set((state) =>

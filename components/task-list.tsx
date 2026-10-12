@@ -10,6 +10,7 @@ export function TaskList({
   items,
   onEdit,
   onDelete,
+  onToggleTask,
   canToggleTask,
   canEditTask,
   canDeleteTask,
@@ -17,6 +18,7 @@ export function TaskList({
   items?: ReadonlyArray<Task>;
   onEdit?: (task: Task) => void;
   onDelete?: (task: Task) => void;
+  onToggleTask?: (task: Task) => void;
   canToggleTask?: (task: Task) => boolean;
   canEditTask?: (task: Task) => boolean;
   canDeleteTask?: (task: Task) => boolean;
@@ -49,7 +51,9 @@ export function TaskList({
             }
             aria-pressed={task.completed}
             onClick={() => {
-              if (!canToggleTask || canToggleTask(task)) toggleTask(task.id);
+              if (canToggleTask && !canToggleTask(task)) return;
+              if (onToggleTask) onToggleTask(task);
+              else toggleTask(task.id);
             }}
             className="shrink-0 text-[#c3c7cf] hover:text-[#6755e8] disabled:cursor-not-allowed disabled:opacity-50"
           >

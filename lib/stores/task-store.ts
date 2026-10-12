@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { getMockWorkspaceData } from "@/lib/mock-api";
 import type { Task, TaskStatus } from "@/lib/orbit-data";
 import { useActivityStore } from "@/lib/stores/activity-store";
@@ -18,6 +19,8 @@ type TaskState = {
   taskAssignees: TaskAssignee[];
   schedule: Schedule;
   createTask: (input: TaskInput) => void;
+  setProjectTasks: (projectId: string, tasks: Task[]) => void;
+  upsertTask: (task: Task) => void;
   updateTask: (id: string, input: TaskInput) => void;
   setTaskStatus: (id: string, status: TaskStatus) => void;
   toggleTask: (id: string) => void;
@@ -32,10 +35,37 @@ type TaskState = {
 
 const initialData = getMockWorkspaceData();
 
-export const useTaskStore = create<TaskState>((set, get) => ({
+export const useTaskStore = create<TaskState>()(
+  persist((set, get) => ({
   tasks: initialData.tasks.map((task) => ({ ...task })),
   taskAssignees: initialData.task_assignees,
   schedule: {},
+  setProjectTasks: (projectId, tasks) =>
+    set((state) => ({
+      tasks: [
+        ...state.tasks.filter((task) => task.projectId !== projectId),
+        ...tasks,
+      ],
+      taskAssignees: [
+        ...state.taskAssignees.filter(
+          (assignee) => assignee.project_id !== projectId,
+        ),
+        ...tasks.flatMap((task) =>
+          makeTaskAssignees(
+            task,
+            task.assignee_ids ??
+              (task.assignee_id ? [task.assignee_id] : []),
+          ),
+        ),
+      ],
+    })),
+  upsertTask: (task) =>
+    set((state) => ({
+      tasks: [
+        task,
+        ...state.tasks.filter((current) => current.id !== task.id),
+      ],
+    })),
   createTask: (input) => {
     const now = new Date().toISOString();
     const completed = input.status === "done";
@@ -255,7 +285,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           ? nextSchedule(state.schedule)
           : nextSchedule,
     })),
-}));
+  }), {
+    name: "orbit-task-store",
+    skipHydration: true,
+    partialize: (state) => ({
+      tasks: state.tasks,
+      taskAssignees: state.taskAssignees,
+      schedule: state.schedule,
+    }),
+  }),
+);
 
 function makeTaskAssignees(
     task: Pick<Task, "workspace_id" | "projectId" | "id" | "created_by">,

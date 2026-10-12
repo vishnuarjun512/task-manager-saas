@@ -46,6 +46,7 @@ export type TaskAssignee = {
 export type ConnectionRequest = {
   id: string;
   personId: string;
+  publicId?: string;
   name: string;
   email: string;
   direction: "incoming" | "outgoing";
@@ -63,6 +64,7 @@ export type WorkspacePreferences = {
 
 export type Profile = {
   id: string;
+  public_id?: string;
   name: string;
   email: string;
   role: string;
@@ -101,6 +103,7 @@ export type Schedule = Record<string, ScheduledTask>;
 export type AuthUser = {
   user_id: string;
   email: string;
+  public_id?: string;
   username: string | null;
   full_name: string | null;
   avatar_url?: string;

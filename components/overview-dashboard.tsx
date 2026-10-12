@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -16,9 +16,6 @@ import { useConnectionStore } from "@/lib/stores/connection-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
-import { useApi } from "@/lib/use-api";
-import { apiFetch } from "@/lib/api-fetch";
-import type { Workspace } from "@/lib/stores/types";
 
 export function OverviewDashboard() {
   const { tasks } = useTaskStore();
@@ -79,30 +76,6 @@ export function OverviewDashboard() {
     month: "long",
     day: "numeric",
   }).format(new Date());
-
-  const { execute } = useApi();
-  const { upsertWorkspace } = useWorkspaceStore();
-
-  useEffect(() => {
-    const fetchHomeData = async () => {
-      try {
-        const data = (await execute(() => apiFetch("/workspace", "GET"))) as {
-          workspaces?: Workspace | Workspace[];
-        };
-        if (!data?.workspaces) {
-          throw new Error("The workspace response did not include workspaces.");
-        }
-
-        const dataworkspaces = Array.isArray(data.workspaces)
-          ? data.workspaces
-          : [data.workspaces];
-        dataworkspaces.forEach(upsertWorkspace);
-      } catch (error) {
-        console.log("Home Data Fetch Error -> ", error);
-      }
-    };
-    fetchHomeData();
-  }, [execute, upsertWorkspace]);
 
   return (
     <>

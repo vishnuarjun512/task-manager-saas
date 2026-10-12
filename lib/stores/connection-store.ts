@@ -24,6 +24,7 @@ export const peopleDirectory = [
 
 type ConnectionState = {
   connections: ConnectionRequest[];
+  setConnections: (connections: ConnectionRequest[]) => void;
   sendConnectionRequest: (personId: string) => boolean;
   updateConnectionStatus: (
     id: string,
@@ -36,6 +37,7 @@ const initialData = getMockWorkspaceData();
 
 export const useConnectionStore = create<ConnectionState>((set, get) => ({
   connections: initialData.connections,
+  setConnections: (connections) => set({ connections }),
   sendConnectionRequest: (personId) => {
     const person = peopleDirectory.find(
       (candidate) =>
