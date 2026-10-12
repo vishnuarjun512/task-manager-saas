@@ -1,4 +1,4 @@
-import type { Task } from "@/lib/orbit-data";
+import type { Project, Task } from "@/lib/orbit-data";
 
 export type Workspace = {
   workspace_id: string;
@@ -9,16 +9,38 @@ export type Workspace = {
   updated_at?: string;
 };
 
-export type Project = {
-  id: string;
-  name: string;
-  description: string;
-  project_color?: string;
-  progress: number;
-  due: string;
-  members: string[];
-  created_by?: string;
+export type { Project };
+
+export type ProjectMember = {
   workspace_id: string;
+  project_id: string;
+  user_id: string;
+  role_id: string;
+  added_by: string | null;
+  joined_at: string;
+};
+
+export type ProjectPermission =
+  | "create_tasks"
+  | "edit_tasks"
+  | "delete_tasks"
+  | "manage_members";
+
+export type ProjectRole = {
+  id: string;
+  project_id: string;
+  name: string;
+  permissions: ProjectPermission[];
+  is_custom: boolean;
+};
+
+export type TaskAssignee = {
+  workspace_id: string;
+  project_id: string;
+  task_id: string;
+  user_id: string;
+  assigned_by: string | null;
+  assigned_at: string;
 };
 
 export type ConnectionRequest = {
@@ -107,7 +129,10 @@ export type MockWorkspaceData = {
   workspaces: Workspace[];
   activeWorkspaceId: string;
   projects: Project[];
+  project_members: ProjectMember[];
+  project_roles: ProjectRole[];
   tasks: Task[];
+  task_assignees: TaskAssignee[];
   connections: ConnectionRequest[];
   profile: Profile;
   preferences: WorkspacePreferences;

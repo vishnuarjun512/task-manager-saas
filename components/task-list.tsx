@@ -2,18 +2,28 @@
 
 import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import type { Task } from "@/lib/orbit-data";
+import { peopleDirectory, useConnectionStore } from "@/lib/stores/connection-store";
+import { useProfileStore } from "@/lib/stores/profile-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 
 export function TaskList({
   items,
   onEdit,
   onDelete,
+  canToggleTask,
+  canEditTask,
+  canDeleteTask,
 }: {
   items?: ReadonlyArray<Task>;
   onEdit?: (task: Task) => void;
   onDelete?: (task: Task) => void;
+  canToggleTask?: (task: Task) => boolean;
+  canEditTask?: (task: Task) => boolean;
+  canDeleteTask?: (task: Task) => boolean;
 }) {
   const { tasks, toggleTask } = useTaskStore();
+  const { connections } = useConnectionStore();
+  const { profile } = useProfileStore();
   const visibleTasks = items ?? tasks;
 
   if (visibleTasks.length === 0) {
@@ -33,12 +43,15 @@ export function TaskList({
         >
           <button
             type="button"
+            disabled={canToggleTask ? !canToggleTask(task) : false}
             aria-label={
               task.completed ? `Reopen ${task.title}` : `Complete ${task.title}`
             }
             aria-pressed={task.completed}
-            onClick={() => toggleTask(task.id)}
-            className="shrink-0 text-[#c3c7cf] hover:text-[#6755e8]"
+            onClick={() => {
+              if (!canToggleTask || canToggleTask(task)) toggleTask(task.id);
+            }}
+            className="shrink-0 text-[#c3c7cf] hover:text-[#6755e8] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {task.completed ? (
               <CheckCircle2 size={17} className="text-[#6755e8]" />
@@ -53,19 +66,32 @@ export function TaskList({
               {task.title}
             </p>
             <p className="mt-1 text-[10px] text-[#a0a5b0]">{task.project}</p>
+            {task.description && (
+              <p className="mt-1 truncate text-[10px] text-[#a0a5b0]">
+                {task.description}
+              </p>
+            )}
           </div>
           <span className="hidden text-[10px] font-medium text-[#6755e8] sm:block">
-            {task.priority}
+            {capitalize(task.priority)}
           </span>
           <span className="hidden rounded-md bg-[#f6f7f9] px-2 py-1 text-[10px] text-[#858b97] md:block">
-            {task.completed ? "Complete" : task.status}
+            {task.completed ? "Complete" : formatStatus(task.status)}
+          </span>
+          <span className="hidden max-w-32 truncate text-right text-[10px] text-[#9da2ad] lg:block">
+            {getAssigneeNames(
+              task.assignee_ids ??
+                (task.assignee_id ? [task.assignee_id] : []),
+              profile.id,
+              connections,
+            )}
           </span>
           <span className="max-w-21 truncate text-right text-[10px] text-[#9da2ad]">
-            {formatDueDate(task.due)}
+            {formatDueDate(task.due_date)}
           </span>
           {(onEdit || onDelete) && (
             <div className="flex shrink-0 items-center gap-0.5">
-              {onEdit && (
+              {onEdit && (!canEditTask || canEditTask(task)) && (
                 <button
                   type="button"
                   aria-label={`Edit ${task.title}`}
@@ -75,7 +101,7 @@ export function TaskList({
                   <Pencil size={13} />
                 </button>
               )}
-              {onDelete && (
+              {onDelete && (!canDeleteTask || canDeleteTask(task)) && (
                 <button
                   type="button"
                   aria-label={`Delete ${task.title}`}
@@ -93,10 +119,40 @@ export function TaskList({
   );
 }
 
-function formatDueDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+function getAssigneeNames(
+  assigneeIds: string[],
+  currentUserId: string,
+  connections: ReturnType<typeof useConnectionStore.getState>["connections"],
+) {
+  if (assigneeIds.length === 0) return "Unassigned";
+  return assigneeIds
+    .map((id) => {
+      if (id === currentUserId) return "You";
+      return (
+        connections.find((connection) => connection.personId === id)?.name ??
+        peopleDirectory.find((person) => person.id === id)?.name ??
+        "Teammate"
+      );
+    })
+    .join(", ");
+}
+
+function formatDueDate(value: string | null) {
+  if (!value) return "No due date";
+  if (!/^\d{4}-\d{2}-\d{2}/.test(value)) return value;
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
-  }).format(new Date(`${value}T12:00:00`));
+  }).format(new Date(`${value.slice(0, 10)}T12:00:00`));
+}
+
+function formatStatus(value: Task["status"]) {
+  return value
+    .split("_")
+    .map(capitalize)
+    .join(" ");
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

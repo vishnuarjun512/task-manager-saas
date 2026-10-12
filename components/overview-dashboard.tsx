@@ -69,8 +69,8 @@ export function OverviewDashboard() {
 
   const upcomingTasks = [...openTasks]
     .sort((left, right) => {
-      const leftDate = isDate(left.due) ? left.due : "9999-12-31";
-      const rightDate = isDate(right.due) ? right.due : "9999-12-31";
+      const leftDate = left.due_date?.slice(0, 10) ?? "9999-12-31";
+      const rightDate = right.due_date?.slice(0, 10) ?? "9999-12-31";
       return leftDate.localeCompare(rightDate);
     })
     .slice(0, 4);
@@ -175,7 +175,7 @@ export function OverviewDashboard() {
                   className="flex items-center gap-3 py-3.5"
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[#f5f3ff] text-[9px] font-semibold text-[#6755e8] dark:bg-white/5">
-                    {shortDue(task.due)}
+                    {shortDue(task.due_date)}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[11px] font-medium">
@@ -255,16 +255,12 @@ export function OverviewDashboard() {
   );
 }
 
-function isDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-function shortDue(value: string) {
-  if (isDate(value)) {
-    return new Intl.DateTimeFormat("en", {
-      month: "short",
-      day: "numeric",
-    }).format(new Date(`${value}T12:00:00`));
-  }
-  return value === "No due date" ? "—" : value;
+function shortDue(value: string | null) {
+  if (!value) return "—";
+  const date = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "—";
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${date}T12:00:00`));
 }

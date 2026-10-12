@@ -92,7 +92,7 @@ export function CalendarPlanner() {
     () =>
       new Set(
         projects
-          .filter((project) => project.workspaceId === activeWorkspaceId)
+          .filter((project) => project.workspace_id === activeWorkspaceId)
           .map((project) => project.id),
       ),
     [activeWorkspaceId, projects],
@@ -104,8 +104,8 @@ export function CalendarPlanner() {
         .map((task) => ({
           ...task,
           color:
-            projects.find((project) => project.id === task.projectId)?.color ??
-            "bg-slate-500",
+            projects.find((project) => project.id === task.projectId)
+              ?.project_color ?? "bg-slate-500",
         })),
     [projects, tasks, workspaceProjectIds],
   );

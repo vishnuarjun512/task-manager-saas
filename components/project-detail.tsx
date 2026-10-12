@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Target } from "lucide-react";
+import { ArrowLeft, CalendarDays, Eye, Target, Users } from "lucide-react";
 import { TaskManager } from "@/components/task-manager";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
@@ -10,7 +10,9 @@ export function ProjectDetail({ id }: { id: string }) {
   const { projects } = useProjectStore();
   const { workspaces, loaded } = useWorkspaceStore();
   const project = projects.find((item) => item.id === id);
-  const workspace = workspaces.find((item) => item.id === project?.workspaceId);
+  const workspace = workspaces.find(
+    (item) => item.workspace_id === project?.workspace_id,
+  );
 
   if (!project) {
     return (
@@ -38,13 +40,21 @@ export function ProjectDetail({ id }: { id: string }) {
       </Link>
       <div className="flex items-start gap-3">
         <span
-          className={`mt-2 size-3 shrink-0 rounded-full ${project.color}`}
+          className={`mt-2 size-3 shrink-0 rounded-full ${project.project_color}`}
         />
         <div>
           <h1 className="text-[25px] font-semibold">{project.name}</h1>
           <p className="mt-1 max-w-2xl text-[12px] text-[#858b97]">
             {project.description}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px]">
+            <span className="rounded-full bg-[#f0edff] px-2 py-1 capitalize text-[#5b49d4] dark:bg-white/10 dark:text-[#c6bdff]">
+              {project.status.replace("_", " ")}
+            </span>
+            <span className="flex items-center gap-1 text-[#9297a3]">
+              <Eye size={11} /> {project.visibility}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -53,7 +63,7 @@ export function ProjectDetail({ id }: { id: string }) {
           <p className="mt-1 text-2xl font-semibold">{project.progress}%</p>
           <div className="mt-3 h-1.5 rounded-full bg-[#f0f1f4]">
             <div
-              className={`h-full rounded-full ${project.color}`}
+              className={`h-full rounded-full ${project.project_color}`}
               style={{ width: `${project.progress}%` }}
             />
           </div>
@@ -62,13 +72,16 @@ export function ProjectDetail({ id }: { id: string }) {
           <p className="mt-1 text-2xl font-semibold">
             {formatDate(project.due)}
           </p>
-        </ProjectMetric>
-        <ProjectMetric label="Workspace">
-          <p className="mt-1 truncate text-[15px] font-semibold">
-            {workspace?.name ?? "Unknown workspace"}
+          <p className="mt-1 text-[10px] text-[#9297a3]">
+            Starts {formatDate(project.start_date)}
           </p>
-          <p className="mt-1 font-mono text-[9px] text-[#9297a3]">
-            {workspace?.id}
+        </ProjectMetric>
+        <ProjectMetric icon={<Users size={18} />} label="Project members">
+          <p className="mt-1 text-2xl font-semibold">
+            {project.members.length}
+          </p>
+          <p className="mt-1 truncate text-[10px] text-[#9297a3]">
+            {workspace?.name ?? "Unknown workspace"}
           </p>
         </ProjectMetric>
       </div>
@@ -98,11 +111,13 @@ function ProjectMetric({
   );
 }
 
-function formatDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+function formatDate(value: string | null) {
+  if (!value || value === "No due date") return "Not set";
+  const date = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Not set";
   return new Intl.DateTimeFormat("en", {
     month: "long",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(`${value}T12:00:00`));
+  }).format(new Date(`${date}T12:00:00`));
 }

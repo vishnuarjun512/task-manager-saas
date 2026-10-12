@@ -55,7 +55,10 @@ export default function SettingsPage() {
               className="mt-2 w-full rounded-md border border-[#e1e3e9] bg-white px-3 py-2.5 text-[12px] dark:border-white/10 dark:bg-[#181920]"
             >
               {workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
+                <option
+                  key={workspace.workspace_id}
+                  value={workspace.workspace_id}
+                >
                   {workspace.name}
                 </option>
               ))}

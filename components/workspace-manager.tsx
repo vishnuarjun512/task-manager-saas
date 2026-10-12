@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import { apiFetch } from "@/lib/api-fetch";
+import { apiFetch, SessionExpiredError } from "@/lib/api-fetch";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
@@ -43,6 +43,7 @@ export function WorkspaceManager() {
         createWorkspace(input);
         toast.success("Workspace created");
       } catch (error) {
+        if (error instanceof SessionExpiredError) return;
         toast.error("Workspace creation failed", {
           description:
             error instanceof Error ? error.message : "Something went wrong.",
@@ -86,7 +87,7 @@ export function WorkspaceManager() {
           <tbody>
             {workspaces.map((workspace: Workspace) => {
               const workspaceProjects = projects.filter(
-                (project) => project.workspaceId === workspace.workspace_id,
+                (project) => project.workspace_id === workspace.workspace_id,
               );
               const workspaceProjectIds = new Set(
                 workspaceProjects.map((project) => project.id),

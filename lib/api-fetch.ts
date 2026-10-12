@@ -1,6 +1,16 @@
+import { toast } from "sonner";
+
 export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+export class SessionExpiredError extends Error {
+  constructor() {
+    super("SESSION_EXPIRED");
+    this.name = "SessionExpiredError";
+  }
+}
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+let refreshRequest: Promise<boolean> | null = null;
 
 export async function apiFetch(
   path: string,
@@ -30,32 +40,36 @@ export async function apiFetch(
       : {}),
   };
 
-  // 1. Make the original request
-
   let response = await fetch(`${apiBaseUrl}${path}`, options);
 
-  // 2. If it wasn't unauthorized, return it normally
-  if (response.status !== 401) {
+  if (response.status !== 401 || path.startsWith("/auth/")) {
     return response;
   }
 
-  // 3. Access token expired/missing → try refresh
-  const refreshResponse = await fetch(`${apiBaseUrl}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
+  if (!refreshRequest) {
+    toast("Refreshing Session", {
+      id: "session-refresh",
+      description: "Please wait while we restore your session...",
+    });
 
-  // 4. Refresh token also invalid/expired
-  if (!refreshResponse.ok) {
-    throw new Error("SESSION_EXPIRED");
+    refreshRequest = fetch(`${apiBaseUrl}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((refreshResponse) => refreshResponse.ok)
+      .finally(() => {
+        toast.dismiss("session-refresh");
+        refreshRequest = null;
+      });
   }
 
-  // 5. Refresh succeeded → retry original request once
-  response = await fetch(`${apiBaseUrl}${path}`, options);
+  if (!(await refreshRequest)) {
+    throw new SessionExpiredError();
+  }
 
-  // 6. If it is still 401, don't keep retrying
+  response = await fetch(`${apiBaseUrl}${path}`, options);
   if (response.status === 401) {
-    throw new Error("SESSION_EXPIRED");
+    throw new SessionExpiredError();
   }
 
   return response;

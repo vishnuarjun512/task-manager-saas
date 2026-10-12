@@ -2,6 +2,8 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { SessionExpiredError } from "@/lib/api-fetch";
 import { useAuthStore } from "./stores/auth-store";
 
 export function useApi() {
@@ -12,12 +14,6 @@ export function useApi() {
     async (apiCall: () => Promise<Response>) => {
       try {
         const response = await apiCall();
-
-        if (response.status === 401) {
-          clearUser();
-          router.push("/login");
-          throw new Error("Your session has expired. Please sign in again.");
-        }
 
         if (!response.ok) {
           throw new Error("Something went wrong.");
@@ -30,12 +26,19 @@ export function useApi() {
 
         return responseBody;
       } catch (cause) {
+        if (cause instanceof SessionExpiredError) {
+          clearUser();
+          toast.error("Session expired");
+          router.replace("/");
+          throw cause;
+        }
+
         throw cause instanceof Error
           ? cause
           : new Error("Unable to connect to the server.");
       }
     },
-    [router],
+    [clearUser, router],
   );
 
   return { execute };

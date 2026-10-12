@@ -14,6 +14,12 @@ export const peopleDirectory = [
   { id: "ORB-4510", name: "Alex Rivera", email: "alex.rivera@example.com" },
   { id: "ORB-5873", name: "Jordan Davis", email: "jordan.davis@example.com" },
   { id: "ORB-6621", name: "Maya Patel", email: "maya.patel@example.com" },
+  { id: "ORB-7340", name: "Emma Wilson", email: "emma.wilson@example.com" },
+  { id: "ORB-8165", name: "Noah Kim", email: "noah.kim@example.com" },
+  { id: "ORB-9281", name: "Priya Shah", email: "priya.shah@example.com" },
+  { id: "ORB-3472", name: "Oliver Brown", email: "oliver.brown@example.com" },
+  { id: "ORB-5093", name: "Ava Thompson", email: "ava.thompson@example.com" },
+  { id: "ORB-7738", name: "Leo Martinez", email: "leo.martinez@example.com" },
 ] as const;
 
 type ConnectionState = {
