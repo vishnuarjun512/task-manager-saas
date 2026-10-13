@@ -143,7 +143,7 @@ export function OverviewDashboard() {
             {upcomingTasks.length > 0 ? (
               upcomingTasks.map((task) => (
                 <Link
-                  key={task.id}
+                  key={task.task_id}
                   href="/tasks"
                   className="flex items-center gap-3 py-3.5"
                 >

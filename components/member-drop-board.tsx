@@ -30,7 +30,7 @@ export function MemberDropBoard({
     <div className="grid gap-3 lg:grid-cols-[minmax(150px,0.8fr)_minmax(0,2fr)]">
       <section
         aria-label="Available connections"
-        className="rounded-lg border border-dashed border-[#d8dbe4] bg-[#fafbfc] p-3 dark:border-white/15 dark:bg-white/[0.02]"
+        className="rounded-lg border border-dashed border-[#d8dbe4] bg-[#fafbfc] p-3 dark:border-white/15 dark:bg-white/2"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
@@ -41,9 +41,7 @@ export function MemberDropBoard({
         <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#888e9a]">
           Connections
         </h4>
-        <p className="mb-2 mt-1 text-[9px] text-[#a0a5ae]">
-          Drag into a role
-        </p>
+        <p className="mb-2 mt-1 text-[9px] text-[#a0a5ae]">Drag into a role</p>
         <div className="flex min-h-14 flex-col gap-2">
           {people.filter((person) => !assignedIds.has(person.id)).length > 0 ? (
             people

@@ -52,7 +52,7 @@ const navigation = [
 ];
 
 export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
-  useBackendBootstrap();
+  // useBackendBootstrap();
   const pathname = usePathname();
   const clearUser = useAuthStore((state) => state.clearUser);
   const { workspaces, activeWorkspaceId, setActiveWorkspace } =
@@ -300,7 +300,7 @@ export function OrbitWorkspace({ children }: { children: React.ReactNode }) {
                       <span className="flex-1">
                         {profileIdCopied
                           ? "Copied Orbit ID"
-                          : profile.public_id ?? profile.id}
+                          : (profile.public_id ?? profile.id)}
                       </span>
                     </button>
                   </div>

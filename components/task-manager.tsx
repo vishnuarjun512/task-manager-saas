@@ -9,7 +9,11 @@ import { ConfirmDialog } from "@/components/dialog-shell";
 import { TaskBoard } from "@/components/task-board";
 import { TaskList } from "@/components/task-list";
 import type { Task, TaskStatus } from "@/lib/orbit-data";
-import { apiFetch, isApiConfigured, SessionExpiredError } from "@/lib/api-fetch";
+import {
+  apiFetch,
+  isApiConfigured,
+  SessionExpiredError,
+} from "@/lib/api-fetch";
 import { parseTasksResponse } from "@/lib/task-api";
 import { useProfileStore } from "@/lib/stores/profile-store";
 import { useProjectStore } from "@/lib/stores/project-store";
@@ -20,12 +24,7 @@ import { hasProjectPermission } from "@/lib/project-roles";
 import { useApi } from "@/lib/use-api";
 
 export function TaskManager({ projectId }: { projectId?: string }) {
-  const {
-    tasks,
-    deleteTask,
-    setTaskStatus,
-    setProjectTasks,
-  } = useTaskStore();
+  const { tasks, deleteTask, setTaskStatus, setProjectTasks } = useTaskStore();
   const { projects, projectMembers, projectRoles } = useProjectStore();
   const { activeWorkspaceId } = useWorkspaceStore();
   const { profile } = useProfileStore();
@@ -41,9 +40,11 @@ export function TaskManager({ projectId }: { projectId?: string }) {
     [projectScopeId, projects],
   );
   const availableProjectIds = new Set(availableProjects.map((item) => item.id));
+
   const visibleTasks = projectId
     ? tasks.filter((task) => task.projectId === projectId)
     : tasks.filter((task) => availableProjectIds.has(task.projectId));
+
   const availableTaskProjects = availableProjects.filter((item) =>
     hasProjectPermission(
       item.id,
@@ -54,7 +55,9 @@ export function TaskManager({ projectId }: { projectId?: string }) {
       projectRoles,
     ),
   );
+
   const canCreateTask = availableTaskProjects.length > 0;
+
   const visibleProjects = projectId
     ? availableProjects.filter((item) => item.id === projectId)
     : availableProjects;
@@ -66,10 +69,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
     Promise.all(
       availableProjects.map(async (project) => {
         const response = await execute(() =>
-          apiFetch(
-            `/projects/${encodeURIComponent(project.id)}/tasks`,
-            "GET",
-          ),
+          apiFetch(`/projects/${encodeURIComponent(project.id)}/tasks`, "GET"),
         );
         return [project.id, parseTasksResponse(response, project)] as const;
       }),
@@ -107,7 +107,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
       if (isApiConfigured) {
         try {
           await execute(() =>
-            apiFetch(`/tasks/${encodeURIComponent(task.id)}`, "PATCH", {
+            apiFetch(`/tasks/${encodeURIComponent(task.task_id)}`, "PATCH", {
               status,
             }),
           );
@@ -115,14 +115,12 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           if (error instanceof SessionExpiredError) return;
           toast.error("Task status could not be updated", {
             description:
-              error instanceof Error
-                ? error.message
-                : "Something went wrong.",
+              error instanceof Error ? error.message : "Something went wrong.",
           });
           return;
         }
       }
-      setTaskStatus(task.id, status);
+      setTaskStatus(task.task_id, status);
     }
   }
 
@@ -131,7 +129,10 @@ export function TaskManager({ projectId }: { projectId?: string }) {
     if (isApiConfigured) {
       try {
         await execute(() =>
-          apiFetch(`/tasks/${encodeURIComponent(deletingTask.id)}`, "DELETE"),
+          apiFetch(
+            `/tasks/${encodeURIComponent(deletingTask.task_id)}`,
+            "DELETE",
+          ),
         );
       } catch (error) {
         if (error instanceof SessionExpiredError) return;
@@ -142,7 +143,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
         return;
       }
     }
-    deleteTask(deletingTask.id);
+    deleteTask(deletingTask.task_id);
     setDeletingTask(null);
   }
 
@@ -201,10 +202,9 @@ export function TaskManager({ projectId }: { projectId?: string }) {
       {view === "list" ? (
         <TaskList
           items={visibleTasks}
-          onToggleTask={(task) => void changeTaskStatus(
-            task,
-            task.completed ? "todo" : "done",
-          )}
+          onToggleTask={(task) =>
+            void changeTaskStatus(task, task.completed ? "todo" : "done")
+          }
           onEdit={(task) => {
             if (
               !hasProjectPermission(
@@ -218,7 +218,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
             ) {
               return;
             }
-            router.push(`/tasks/${encodeURIComponent(task.id)}/edit`);
+            router.push(`/tasks/${encodeURIComponent(task.task_id)}/edit`);
           }}
           onDelete={setDeletingTask}
           canToggleTask={(task) =>
@@ -258,7 +258,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           tasks={visibleTasks}
           onStatusChange={(task, status) => void changeTaskStatus(task, status)}
           onEdit={(task) => {
-            router.push(`/tasks/${encodeURIComponent(task.id)}/edit`);
+            router.push(`/tasks/${encodeURIComponent(task.task_id)}/edit`);
           }}
           onDelete={setDeletingTask}
           canEditTask={(task) =>

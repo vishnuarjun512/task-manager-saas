@@ -6,7 +6,11 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useConnectionStore } from "@/lib/stores/connection-store";
 import { useConnectionHydration } from "@/lib/stores/use-connection-hydration";
-import { apiFetch, isApiConfigured, SessionExpiredError } from "@/lib/api-fetch";
+import {
+  apiFetch,
+  isApiConfigured,
+  SessionExpiredError,
+} from "@/lib/api-fetch";
 import { useProfileStore } from "@/lib/stores/profile-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
@@ -21,8 +25,8 @@ import { hasProjectPermission } from "@/lib/project-roles";
 import { findTaskById } from "@/lib/stores/selectors";
 import { useStoreHydration } from "@/lib/stores/use-store-hydration";
 import { TaskForm } from "@/components/task-form";
-import type { TaskInput } from "@/lib/orbit-data";
 import { useApi } from "@/lib/use-api";
+import { Task } from "@/lib/orbit-data";
 
 /** Resolves the requested task from hydrated store data, then handles edits. */
 export function TaskEditorPage({
@@ -34,12 +38,8 @@ export function TaskEditorPage({
 }) {
   const router = useRouter();
   const { tasks, createTask, updateTask, upsertTask } = useTaskStore();
-  const {
-    projects,
-    projectMembers,
-    projectRoles,
-    setWorkspaceProjects,
-  } = useProjectStore();
+  const { projects, projectMembers, projectRoles, setWorkspaceProjects } =
+    useProjectStore();
   const { activeWorkspaceId } = useWorkspaceStore();
   const isHydrated = useStoreHydration();
   const { connections } = useConnectionStore();
@@ -59,9 +59,7 @@ export function TaskEditorPage({
   useEffect(() => {
     if (!isHydrated || !taskId || !isApiConfigured) return;
     let cancelled = false;
-    execute(() =>
-      apiFetch(`/tasks/${encodeURIComponent(taskId)}`, "GET"),
-    )
+    execute(() => apiFetch(`/tasks/${encodeURIComponent(taskId)}`, "GET"))
       .then(async (data) => {
         if (cancelled) return;
         const reference = getTaskProjectReference(data);
@@ -105,13 +103,7 @@ export function TaskEditorPage({
     return () => {
       cancelled = true;
     };
-  }, [
-    execute,
-    isHydrated,
-    setWorkspaceProjects,
-    taskId,
-    upsertTask,
-  ]);
+  }, [execute, isHydrated, setWorkspaceProjects, taskId, upsertTask]);
   const permittedProjects = projects.filter((item) => {
     if (projectId) return item.id === projectId;
     if (task) {
@@ -169,11 +161,7 @@ export function TaskEditorPage({
     );
   }
 
-  if (
-    taskId &&
-    isApiConfigured &&
-    !remoteTaskLoadComplete
-  ) {
+  if (taskId && isApiConfigured && !remoteTaskLoadComplete) {
     return (
       <section className="mx-auto mt-6 max-w-4xl">
         <p className="text-[12px] text-[#858b97]">Loading task…</p>
@@ -217,7 +205,7 @@ export function TaskEditorPage({
 
   return (
     <TaskForm
-      key={task?.id ?? `new-${projectId ?? "task"}`}
+      key={task?.task_id ?? `new-${projectId ?? "task"}`}
       task={task}
       projectId={projectId}
       projects={permittedProjects}
@@ -235,13 +223,13 @@ export function TaskEditorPage({
           })),
       ]}
       onClose={closeEditor}
-      onSave={async (input: TaskInput) => {
+      onSave={async (input: Task) => {
         if (isApiConfigured) {
           try {
             const data = await execute(() =>
               task
                 ? apiFetch(
-                    `/tasks/${encodeURIComponent(task.id)}`,
+                    `/tasks/${encodeURIComponent(task.task_id)}`,
                     "PATCH",
                     taskRequestBody(input),
                   )
@@ -263,7 +251,7 @@ export function TaskEditorPage({
             return;
           }
         } else if (task) {
-          updateTask(task.id, input);
+          updateTask(task.task_id, input);
         } else {
           createTask(input);
         }

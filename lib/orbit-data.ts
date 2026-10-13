@@ -55,7 +55,7 @@ export type Project = {
 };
 
 export type Task = {
-  id: string;
+  task_id: string;
   workspace_id: string;
   projectId: string;
   parent_task_id: string | null;
@@ -75,11 +75,6 @@ export type Task = {
   updated_at: string;
   completed: boolean;
 };
-
-export type TaskInput = Omit<
-  Task,
-  "id" | "completed" | "completed_at" | "created_at" | "updated_at"
->;
 
 export const projectData: Project[] = [
   {
@@ -134,7 +129,8 @@ export const projectData: Project[] = [
   {
     id: "brand-refresh",
     name: "Brand Refresh",
-    description: "Modernize the identity system and roll it out across touchpoints.",
+    description:
+      "Modernize the identity system and roll it out across touchpoints.",
     project_color: "bg-rose-500",
     status: "active",
     visibility: "workspace",
@@ -150,7 +146,8 @@ export const projectData: Project[] = [
   {
     id: "launch-experiments",
     name: "Launch Experiments",
-    description: "Test onboarding and activation ideas with a small user cohort.",
+    description:
+      "Test onboarding and activation ideas with a small user cohort.",
     project_color: "bg-emerald-500",
     status: "on_hold",
     visibility: "private",
@@ -167,12 +164,13 @@ export const projectData: Project[] = [
 
 export const tasks: Task[] = [
   {
-    id: "finalize-homepage-copy",
+    task_id: "finalize-homepage-copy",
     workspace_id: "ws-acme",
     projectId: "website-redesign",
     parent_task_id: null,
     title: "Finalize homepage copy",
-    description: "Review the final landing-page headlines with the content team.",
+    description:
+      "Review the final landing-page headlines with the content team.",
     project: "Website Redesign",
     priority: "high",
     status: "in_progress",
@@ -187,7 +185,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "review-onboarding-flow",
+    task_id: "review-onboarding-flow",
     workspace_id: "ws-acme",
     projectId: "mobile-app-v2",
     parent_task_id: null,
@@ -207,7 +205,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "prepare-campaign-brief",
+    task_id: "prepare-campaign-brief",
     workspace_id: "ws-acme",
     projectId: "q4-campaign",
     parent_task_id: null,
@@ -227,7 +225,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "add-analytics-events",
+    task_id: "add-analytics-events",
     workspace_id: "ws-acme",
     projectId: "mobile-app-v2",
     parent_task_id: null,
@@ -247,7 +245,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "approve-design-system",
+    task_id: "approve-design-system",
     workspace_id: "ws-acme",
     projectId: "website-redesign",
     parent_task_id: null,
@@ -267,7 +265,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "qa-checkout",
+    task_id: "qa-checkout",
     workspace_id: "ws-acme",
     projectId: "mobile-app-v2",
     parent_task_id: null,
@@ -287,7 +285,7 @@ export const tasks: Task[] = [
     completed: true,
   },
   {
-    id: "schedule-campaign",
+    task_id: "schedule-campaign",
     workspace_id: "ws-acme",
     projectId: "q4-campaign",
     parent_task_id: null,
@@ -307,7 +305,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "review-accessibility",
+    task_id: "review-accessibility",
     workspace_id: "ws-acme",
     projectId: "website-redesign",
     parent_task_id: null,
@@ -327,7 +325,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "draft-email-sequence",
+    task_id: "draft-email-sequence",
     workspace_id: "ws-acme",
     projectId: "q4-campaign",
     parent_task_id: null,
@@ -347,7 +345,7 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "prototype-settings",
+    task_id: "prototype-settings",
     workspace_id: "ws-acme",
     projectId: "mobile-app-v2",
     parent_task_id: null,
@@ -367,12 +365,13 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "collect-customer-quotes",
+    task_id: "collect-customer-quotes",
     workspace_id: "ws-acme",
     projectId: "q4-campaign",
     parent_task_id: null,
     title: "Collect customer quotes",
-    description: "Gather approved customer stories for the campaign landing page.",
+    description:
+      "Gather approved customer stories for the campaign landing page.",
     project: "Q4 Campaign",
     priority: "medium",
     status: "done",
@@ -387,7 +386,7 @@ export const tasks: Task[] = [
     completed: true,
   },
   {
-    id: "approve-brand-guidelines",
+    task_id: "approve-brand-guidelines",
     workspace_id: "ws-studio",
     projectId: "brand-refresh",
     parent_task_id: null,
@@ -407,12 +406,13 @@ export const tasks: Task[] = [
     completed: false,
   },
   {
-    id: "prototype-activation",
+    task_id: "prototype-activation",
     workspace_id: "ws-launch",
     projectId: "launch-experiments",
     parent_task_id: null,
     title: "Prototype activation checklist",
-    description: "Draft a lightweight checklist for the first-session experience.",
+    description:
+      "Draft a lightweight checklist for the first-session experience.",
     project: "Launch Experiments",
     priority: "medium",
     status: "todo",

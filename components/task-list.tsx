@@ -2,7 +2,10 @@
 
 import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
 import type { Task } from "@/lib/orbit-data";
-import { peopleDirectory, useConnectionStore } from "@/lib/stores/connection-store";
+import {
+  peopleDirectory,
+  useConnectionStore,
+} from "@/lib/stores/connection-store";
 import { useProfileStore } from "@/lib/stores/profile-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 
@@ -40,7 +43,7 @@ export function TaskList({
     <div className="divide-y divide-[#f0f1f4] rounded-xl border border-[#e7e9ee] bg-white dark:border-white/10 dark:bg-[#181920]">
       {visibleTasks.map((task) => (
         <div
-          key={task.id}
+          key={task.task_id}
           className="flex items-center gap-3 px-4 py-3.5 sm:px-5"
         >
           <button
@@ -53,7 +56,7 @@ export function TaskList({
             onClick={() => {
               if (canToggleTask && !canToggleTask(task)) return;
               if (onToggleTask) onToggleTask(task);
-              else toggleTask(task.id);
+              else toggleTask(task.task_id);
             }}
             className="shrink-0 text-[#c3c7cf] hover:text-[#6755e8] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -84,8 +87,7 @@ export function TaskList({
           </span>
           <span className="hidden max-w-32 truncate text-right text-[10px] text-[#9da2ad] lg:block">
             {getAssigneeNames(
-              task.assignee_ids ??
-                (task.assignee_id ? [task.assignee_id] : []),
+              task.assignee_ids ?? (task.assignee_id ? [task.assignee_id] : []),
               profile.id,
               connections,
             )}
@@ -151,10 +153,7 @@ function formatDueDate(value: string | null) {
 }
 
 function formatStatus(value: Task["status"]) {
-  return value
-    .split("_")
-    .map(capitalize)
-    .join(" ");
+  return value.split("_").map(capitalize).join(" ");
 }
 
 function capitalize(value: string) {
