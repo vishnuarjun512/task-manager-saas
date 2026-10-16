@@ -1,25 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ProjectForm } from "@/components/project-form";
 import { useConnectionStore } from "@/lib/stores/connection-store";
-import { useConnectionHydration } from "@/lib/stores/use-connection-hydration";
 import { createDefaultProjectRoles } from "@/lib/project-roles";
 import { useProfileStore } from "@/lib/stores/profile-store";
 import { useProjectStore } from "@/lib/stores/project-store";
-import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import { findProjectById } from "@/lib/stores/selectors";
 import { useStoreHydration } from "@/lib/stores/use-store-hydration";
 import type { ProjectCreateRequest, ProjectInput } from "@/lib/project-types";
-import {
-  getCreatedProjectId,
-  getMemberOptions,
-  parseProjectsResponse,
-} from "@/lib/project-data";
+import { getCreatedProjectId, getMemberOptions } from "@/lib/project-data";
 import { useApi } from "@/lib/use-api";
 import {
   apiFetch,
@@ -27,25 +20,21 @@ import {
   SessionExpiredError,
 } from "@/lib/api-fetch";
 
-/** Loads the requested project from stored state or the workspace API before editing. */
+/** Edits a stored project or creates one with a single API request. */
 export function ProjectEditorPage({ projectId }: { projectId?: string }) {
   const router = useRouter();
   const {
     projects,
     projectMembers,
     projectRoles,
-    setWorkspaceProjects,
     setProjectAssignments,
     updateProject,
     createProject,
   } = useProjectStore();
-  const { activeWorkspaceId } = useWorkspaceStore();
   const { connections } = useConnectionStore();
-  useConnectionHydration();
   const { profile } = useProfileStore();
   const { execute } = useApi();
   const isHydrated = useStoreHydration();
-  const [loadAttempted, setLoadAttempted] = useState(false);
   const project = findProjectById(projects, projectId);
   const connectedPeople = getMemberOptions(
     profile.id,
@@ -60,54 +49,6 @@ export function ProjectEditorPage({ projectId }: { projectId?: string }) {
   const assignments = projectMembers
     .filter((member) => member.project_id === projectId)
     .map(({ user_id, role_id }) => ({ user_id, role_id }));
-
-  useEffect(() => {
-    if (
-      !isHydrated ||
-      !projectId ||
-      project ||
-      !activeWorkspaceId ||
-      !isApiConfigured ||
-      loadAttempted
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    execute(() =>
-      apiFetch(`/projects/${encodeURIComponent(activeWorkspaceId)}`, "GET"),
-    )
-      .then((data) => {
-        if (!cancelled) {
-          setWorkspaceProjects(
-            activeWorkspaceId,
-            parseProjectsResponse(data, activeWorkspaceId),
-          );
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled && !(error instanceof SessionExpiredError)) {
-          toast.error("Project could not be loaded", {
-            description:
-              error instanceof Error ? error.message : "Something went wrong.",
-          });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoadAttempted(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    activeWorkspaceId,
-    execute,
-    isHydrated,
-    loadAttempted,
-    project,
-    projectId,
-    setWorkspaceProjects,
-  ]);
 
   async function saveProject(input: ProjectInput) {
     if (project) {
@@ -141,9 +82,7 @@ export function ProjectEditorPage({ projectId }: { projectId?: string }) {
           if (error instanceof SessionExpiredError) return;
           toast.error("Project could not be updated", {
             description:
-              error instanceof Error
-                ? error.message
-                : "Something went wrong.",
+              error instanceof Error ? error.message : "Something went wrong.",
           });
           return;
         }
@@ -170,6 +109,7 @@ export function ProjectEditorPage({ projectId }: { projectId?: string }) {
       start_date: input.start_date,
       due_date: input.due === "No due date" ? null : input.due || null,
     };
+
     if (!isApiConfigured) {
       createProject(input);
       const createdProject = useProjectStore
@@ -192,55 +132,22 @@ export function ProjectEditorPage({ projectId }: { projectId?: string }) {
       router.push(`/projects/${createdProject.id}`);
       return;
     }
+
     try {
       const data = await execute(() => apiFetch("/projects", "POST", request));
-      if (data?.error) throw new Error(data.message);
       const createdProjectId = getCreatedProjectId(data);
-      await execute(() =>
-        apiFetch(`/projects/${encodeURIComponent(input.workspace_id)}`, "GET"),
-      ).then((response) =>
-        setWorkspaceProjects(
-          input.workspace_id,
-          parseProjectsResponse(response, input.workspace_id),
-        ),
-      );
-
-      const refreshedProjects = useProjectStore.getState().projects;
-      const createdProject =
-        refreshedProjects.find((item) => item.id === createdProjectId) ??
-        [...refreshedProjects]
-          .filter(
-            (item) =>
-              item.workspace_id === input.workspace_id &&
-              item.name === input.name,
-          )
-          .sort((left, right) =>
-            (right.created_at ?? "").localeCompare(left.created_at ?? ""),
-          )[0];
-      if (!createdProject) {
-        throw new Error(
-          "The project was created, but it could not be found in the refreshed project list.",
-        );
+      if (!createdProjectId) {
+        throw new Error("The project response did not include a project ID.");
       }
-      await execute(() =>
-        apiFetch(
-          `/projects/${encodeURIComponent(createdProject.id)}/members`,
-          "PUT",
-          {
-            members: input.member_assignments.map(({ user_id }) => ({
-              user_id,
-            })),
-          },
-        ),
-      );
+      createProject(input, createdProjectId);
       setProjectAssignments(
-        createdProject.id,
+        createdProjectId,
         input.workspace_id,
         input.member_assignments,
         input.project_roles,
       );
       toast.success("Project created");
-      router.push(`/projects/${createdProject.id}`);
+      router.push(`/projects/${createdProjectId}`);
     } catch (error) {
       if (error instanceof SessionExpiredError) return;
       toast.error("Project could not be saved", {
@@ -260,11 +167,7 @@ export function ProjectEditorPage({ projectId }: { projectId?: string }) {
           <ArrowLeft size={14} /> Projects
         </Link>
         <p className="text-[12px] text-[#858b97]">
-          {!isHydrated || (isApiConfigured && !loadAttempted)
-            ? "Loading project…"
-            : !activeWorkspaceId
-              ? "Project not found."
-              : "Project not found."}
+          {!isHydrated ? "Loading project…" : "Project not found."}
         </p>
       </section>
     );

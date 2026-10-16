@@ -551,7 +551,7 @@ function SearchPanel({
           ))}
           {matchingTasks.map((task) => (
             <Link
-              key={task.id}
+              key={task.task_id}
               href="/tasks"
               onClick={onClose}
               className="flex items-center gap-2 rounded-md px-2 py-2 text-[11px] hover:bg-[#f5f6f8] dark:hover:bg-white/5"

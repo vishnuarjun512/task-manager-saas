@@ -3,22 +3,14 @@
 import { useState, type FormEvent } from "react";
 import { Check, Link2, Plus, Trash2, X } from "lucide-react";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import { peopleDirectory, useConnectionStore } from "@/lib/stores/connection-store";
+import {
+  peopleDirectory,
+  useConnectionStore,
+} from "@/lib/stores/connection-store";
 import { useProfileStore } from "@/lib/stores/profile-store";
 import type { ConnectionRequest } from "@/lib/stores/types";
-import {
-  apiFetch,
-  isApiConfigured,
-  SessionExpiredError,
-} from "@/lib/api-fetch";
-import {
-  parseConnectionsResponse,
-  parsePublicPerson,
-  type PublicPerson,
-} from "@/lib/connection-api";
-import { useApi } from "@/lib/use-api";
+import type { PublicPerson } from "@/lib/connection-api";
 import { toast } from "sonner";
-import { useConnectionHydration } from "@/lib/stores/use-connection-hydration";
 
 export function ConnectionManager() {
   const {
@@ -26,10 +18,7 @@ export function ConnectionManager() {
     sendConnectionRequest,
     updateConnectionStatus,
     deleteConnection,
-    setConnections,
   } = useConnectionStore();
-  const { execute } = useApi();
-  useConnectionHydration();
   const { profile } = useProfileStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [removing, setRemoving] = useState<ConnectionRequest | null>(null);
@@ -38,103 +27,35 @@ export function ConnectionManager() {
       connection.direction === "incoming" && connection.status === "pending",
   ).length;
 
-  async function searchPerson(publicId: string): Promise<PublicPerson | null> {
-    if (!isApiConfigured) {
-      const person = peopleDirectory.find(
-        (candidate) =>
-          candidate.id.toLowerCase() === publicId.trim().toLowerCase(),
-      );
-      return person
-        ? {
-            id: person.id,
-            publicId: person.id,
-            name: person.name,
-            email: person.email,
-          }
-        : null;
-    }
-    const query = new URLSearchParams({ public_id: publicId.trim() });
-    const data = await execute(() =>
-      apiFetch(`/users?${query.toString()}`, "GET"),
+  function searchPerson(publicId: string): PublicPerson | null {
+    const person = peopleDirectory.find(
+      (candidate) =>
+        candidate.id.toLowerCase() === publicId.trim().toLowerCase(),
     );
-    return parsePublicPerson(data);
+    return person
+      ? {
+          id: person.id,
+          publicId: person.id,
+          name: person.name,
+          email: person.email,
+        }
+      : null;
   }
 
-  async function sendRequest(person: PublicPerson): Promise<boolean> {
-    if (!isApiConfigured) return sendConnectionRequest(person.id);
-    try {
-      const data = await execute(() =>
-        apiFetch("/connections/requests", "POST", {
-          public_id: person.publicId,
-        }),
-      );
-      const created = parseConnectionsResponse({
-        connections: [
-          typeof data === "object" && data !== null && "connection" in data
-            ? data.connection
-            : data,
-        ],
-      })[0];
-      setConnections([
-        created,
-        ...connections.filter((item) => item.id !== created.id),
-      ]);
-      toast.success("Connection request sent");
-      return true;
-    } catch (error) {
-      if (!(error instanceof SessionExpiredError)) {
-        toast.error("Connection request could not be sent", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-      }
-      return false;
-    }
+  function sendRequest(person: PublicPerson): boolean {
+    const sent = sendConnectionRequest(person.id);
+    if (sent) toast.success("Connection request sent");
+    return sent;
   }
 
-  async function changeConnectionStatus(
+  function changeConnectionStatus(
     connection: ConnectionRequest,
     status: "connected" | "declined",
   ) {
-    if (isApiConfigured) {
-      try {
-        const action = status === "connected" ? "accept" : "decline";
-        await execute(() =>
-          apiFetch(
-            `/connections/requests/${encodeURIComponent(connection.id)}/${action}`,
-            "POST",
-          ),
-        );
-      } catch (error) {
-        if (error instanceof SessionExpiredError) return;
-        toast.error("Connection request could not be updated", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-        return;
-      }
-    }
     updateConnectionStatus(connection.id, status);
   }
 
-  async function removeConnection(connection: ConnectionRequest) {
-    if (isApiConfigured) {
-      try {
-        await execute(() =>
-          apiFetch(
-            `/connections/${encodeURIComponent(connection.id)}`,
-            "DELETE",
-          ),
-        );
-      } catch (error) {
-        if (error instanceof SessionExpiredError) return;
-        toast.error("Connection could not be removed", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-        return;
-      }
-    }
+  function removeConnection(connection: ConnectionRequest) {
     deleteConnection(connection.id);
     setRemoving(null);
   }
@@ -208,7 +129,10 @@ export function ConnectionManager() {
                           <button
                             type="button"
                             onClick={() =>
-                              void changeConnectionStatus(connection, "connected")
+                              void changeConnectionStatus(
+                                connection,
+                                "connected",
+                              )
                             }
                             className="flex items-center gap-1 rounded-md bg-[#edfaf4] px-2 py-1.5 text-[10px] font-medium text-[#32825f] hover:bg-[#def5e9]"
                           >
@@ -217,7 +141,10 @@ export function ConnectionManager() {
                           <button
                             type="button"
                             onClick={() =>
-                              void changeConnectionStatus(connection, "declined")
+                              void changeConnectionStatus(
+                                connection,
+                                "declined",
+                              )
                             }
                             className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[10px] text-[#888e99] hover:bg-[#f3f4f6]"
                           >
@@ -258,7 +185,6 @@ export function ConnectionManager() {
           currentUserId={profile.id}
           connections={connections}
           onClose={() => setDialogOpen(false)}
-          remote={isApiConfigured}
           onSearch={searchPerson}
           onSend={sendRequest}
         />
@@ -281,55 +207,36 @@ export function ConnectionManager() {
 function ConnectionForm({
   currentUserId,
   connections,
-  remote,
   onSearch,
   onClose,
   onSend,
 }: {
   currentUserId: string;
   connections: ConnectionRequest[];
-  remote: boolean;
-  onSearch: (publicId: string) => Promise<PublicPerson | null>;
+  onSearch: (publicId: string) => PublicPerson | null;
   onClose: () => void;
-  onSend: (person: PublicPerson) => Promise<boolean>;
+  onSend: (person: PublicPerson) => boolean;
 }) {
   const [personId, setPersonId] = useState("");
   const [feedback, setFeedback] = useState("");
   const [person, setPerson] = useState<PublicPerson | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const isSelf =
     person?.id === currentUserId || person?.publicId === currentUserId;
   const existing = connections.find(
-    (connection) => connection.personId === person?.id &&
-      connection.status !== "declined",
+    (connection) =>
+      connection.personId === person?.id && connection.status !== "declined",
   );
 
-  async function findPerson() {
+  function findPerson() {
     if (!personId.trim()) return;
-    setIsSearching(true);
     setFeedback("");
-    try {
-      setPerson(await onSearch(personId));
-    } catch (error) {
-      setPerson(null);
-      setFeedback(
-        error instanceof Error
-          ? error.message
-          : "Person could not be found.",
-      );
-    } finally {
-      setIsSearching(false);
-    }
+    setPerson(onSearch(personId));
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!person) return;
-    setIsSending(true);
-    const sent = await onSend(person);
-    setIsSending(false);
-    if (sent) onClose();
+    if (onSend(person)) onClose();
     else setFeedback("A request or connection already exists for this ID.");
   }
 
@@ -357,11 +264,11 @@ function ConnectionForm({
         </label>
         <button
           type="button"
-          onClick={() => void findPerson()}
-          disabled={!personId.trim() || isSearching}
+          onClick={findPerson}
+          disabled={!personId.trim()}
           className="self-start rounded-md border border-[#e1e3e9] px-3 py-2 text-[10px] font-medium text-[#6755e8] disabled:opacity-40 dark:border-white/10"
         >
-          {isSearching ? "Searching..." : "Find person"}
+          Find person
         </button>
         {person && !isSelf && (
           <div className="rounded-lg border border-[#e9eaf0] px-3 py-2.5 dark:border-white/10">
@@ -371,9 +278,7 @@ function ConnectionForm({
         )}
         {personId && !person && !feedback && (
           <p className="text-[10px] text-[#b93d3d]">
-            {remote
-              ? "Find a person by their Orbit ID before sending a request."
-              : "No person found with that ID in this directory."}
+            No person found with that ID in this directory.
           </p>
         )}
         {isSelf && (
@@ -396,10 +301,10 @@ function ConnectionForm({
           </button>
           <button
             type="submit"
-            disabled={!person || isSelf || Boolean(existing) || isSending}
+            disabled={!person || isSelf || Boolean(existing)}
             className="rounded-md bg-[#6755e8] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-40"
           >
-            {isSending ? "Sending..." : "Send request"}
+            Send request
           </button>
         </div>
       </form>

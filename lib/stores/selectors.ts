@@ -5,5 +5,6 @@ export function findProjectById(projects: Project[], projectId?: string) {
 }
 
 export function findTaskById(tasks: Task[], taskId?: string) {
-  return tasks.find((task) => task.id === taskId) ?? null;
+  if (!taskId) return null;
+  return tasks.find((task) => task.task_id === taskId) ?? null;
 }

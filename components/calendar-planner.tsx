@@ -61,8 +61,8 @@ function PlannerTaskRow({
       type="button"
       draggable
       aria-pressed={selected}
-      onClick={() => onSelect(task.id)}
-      onDragStart={(event) => onDragStart(task.id, event)}
+      onClick={() => onSelect(task.task_id)}
+      onDragStart={(event) => onDragStart(task.task_id, event)}
       className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition ${
         selected
           ? "border-[#6755e8] bg-[#f7f5ff] dark:bg-[#27253d]"
@@ -110,7 +110,7 @@ export function CalendarPlanner() {
     [projects, tasks, workspaceProjectIds],
   );
   const taskIds = useMemo(
-    () => new Set<string>(plannerTasks.map((task) => task.id)),
+    () => new Set<string>(plannerTasks.map((task) => task.task_id)),
     [plannerTasks],
   );
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -136,10 +136,10 @@ export function CalendarPlanner() {
     [schedule],
   );
   const unscheduledTasks = plannerTasks.filter(
-    (task) => !scheduledIds.has(task.id) && !task.completed,
+    (task) => !scheduledIds.has(task.task_id) && !task.completed,
   );
   const selectedTasks = plannerTasks.filter(
-    (task) => schedule[task.id]?.date === selectedDate,
+    (task) => schedule[task.task_id]?.date === selectedDate,
   );
   const monthLabel = new Intl.DateTimeFormat("en", {
     month: "long",
@@ -291,7 +291,7 @@ export function CalendarPlanner() {
 
                 const dateKey = toDateKey(date);
                 const dayTasks = plannerTasks.filter(
-                  (task) => schedule[task.id]?.date === dateKey,
+                  (task) => schedule[task.task_id]?.date === dateKey,
                 );
                 const isSelected = selectedDate === dateKey;
                 const isToday = toDateKey(new Date()) === dateKey;
@@ -325,19 +325,19 @@ export function CalendarPlanner() {
                       {dayTasks.map((task) => (
                         <button
                           type="button"
-                          key={task.id}
+                          key={task.task_id}
                           draggable
                           onDragStart={(event) =>
-                            handleDragStart(task.id, event)
+                            handleDragStart(task.task_id, event)
                           }
                           onClick={() => setSelectedDate(dateKey)}
                           className={`flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-left text-[9px] font-medium text-white ${task.color}`}
-                          title={`${task.title}${schedule[task.id].time ? `, ${schedule[task.id].time}` : ""}`}
+                          title={`${task.title}${schedule[task.task_id].time ? `, ${schedule[task.task_id].time}` : ""}`}
                         >
                           <span className="truncate">{task.title}</span>
-                          {schedule[task.id].time && (
+                          {schedule[task.task_id].time && (
                             <span className="shrink-0 opacity-80">
-                              {schedule[task.id].time}
+                              {schedule[task.task_id].time}
                             </span>
                           )}
                         </button>
@@ -379,7 +379,7 @@ export function CalendarPlanner() {
             {selectedTasks.length > 0 ? (
               selectedTasks.map((task) => (
                 <div
-                  key={task.id}
+                  key={task.task_id}
                   className="rounded-lg border border-[#e9eaf0] p-3 dark:border-white/10"
                 >
                   <div className="flex items-start gap-2">
@@ -397,7 +397,7 @@ export function CalendarPlanner() {
                     <button
                       type="button"
                       aria-label={`Remove ${task.title} from calendar`}
-                      onClick={() => removeTask(task.id)}
+                      onClick={() => removeTask(task.task_id)}
                       className="rounded p-1 text-[#a3a7b1] hover:bg-[#f3f4f6] hover:text-[#535866] dark:hover:bg-white/10"
                     >
                       <X size={13} />
@@ -409,9 +409,9 @@ export function CalendarPlanner() {
                     <input
                       aria-label={`Set time for ${task.title}`}
                       type="time"
-                      value={schedule[task.id].time ?? ""}
+                      value={schedule[task.task_id].time ?? ""}
                       onChange={(event) =>
-                        updateTaskTime(task.id, event.target.value)
+                        updateTaskTime(task.task_id, event.target.value)
                       }
                       className="ml-auto rounded border border-[#e6e8ed] bg-transparent px-2 py-1 text-[10px] dark:border-white/10"
                     />
@@ -442,9 +442,9 @@ export function CalendarPlanner() {
             {unscheduledTasks.length > 0 ? (
               unscheduledTasks.map((task) => (
                 <PlannerTaskRow
-                  key={task.id}
+                  key={task.task_id}
                   task={task}
-                  selected={selectedTaskIds.includes(task.id)}
+                  selected={selectedTaskIds.includes(task.task_id)}
                   onSelect={selectTask}
                   onDragStart={handleDragStart}
                 />

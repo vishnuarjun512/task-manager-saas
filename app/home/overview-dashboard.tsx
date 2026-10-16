@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -16,11 +16,13 @@ import { useConnectionStore } from "@/lib/stores/connection-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
+import { useApi } from "@/lib/use-api";
+import { apiFetch } from "@/lib/api-fetch";
 
 export function OverviewDashboard() {
   const { tasks } = useTaskStore();
   const { projects } = useProjectStore();
-  const { activeWorkspaceId } = useWorkspaceStore();
+  const { activeWorkspaceId, setWorkspaces } = useWorkspaceStore();
   const { connections } = useConnectionStore();
 
   const workspaceProjects = projects.filter(
@@ -76,6 +78,17 @@ export function OverviewDashboard() {
     month: "long",
     day: "numeric",
   }).format(new Date());
+
+  const { execute } = useApi();
+  useEffect(() => {
+    const fetchAllWorkspaces = async () => {
+      const response = await execute(() => apiFetch(`/home`, "GET"));
+      console.log("Response -> ", response);
+      setWorkspaces(response.workspaces);
+    };
+
+    fetchAllWorkspaces();
+  }, []);
 
   return (
     <>

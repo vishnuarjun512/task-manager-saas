@@ -95,7 +95,7 @@ export function parseTaskRecord(value: unknown, project: Project): Task {
       : [];
   const completed = status === "done";
   return {
-    id,
+    task_id: id,
     workspace_id: readString(value.workspace_id) ?? project.workspace_id,
     projectId,
     parent_task_id: nullableString(value.parent_task_id),

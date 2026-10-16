@@ -6,8 +6,6 @@ import { MemberDropBoard } from "@/components/member-drop-board";
 import type { Task, TaskInput } from "@/lib/orbit-data";
 import type { Project, ProjectRole } from "@/lib/stores/types";
 
-export type { TaskInput } from "@/lib/orbit-data";
-
 export function TaskForm({
   task,
   projectId: initialProjectId,
@@ -30,21 +28,16 @@ export function TaskForm({
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [projectId, setProjectId] = useState(
-    task?.projectId ?? initialProjectId ?? projects[0]?.id ?? "",
+    task?.projectId ?? initialProjectId ?? "",
   );
   const [priority, setPriority] = useState<Task["priority"]>(
     task?.priority ?? "medium",
   );
-  const [status, setStatus] = useState<Task["status"]>(
-    task?.status ?? "todo",
-  );
+  const [status, setStatus] = useState<Task["status"]>(task?.status ?? "todo");
   const [assigneeIds, setAssigneeIds] = useState<string[]>(
-    task?.assignee_ids ??
-      (task?.assignee_id ? [task.assignee_id] : []),
+    task?.assignee_ids ?? (task?.assignee_id ? [task.assignee_id] : []),
   );
-  const [parentTaskId, setParentTaskId] = useState(
-    task?.parent_task_id ?? "",
-  );
+  const [parentTaskId, setParentTaskId] = useState(task?.parent_task_id ?? "");
   const [startDate, setStartDate] = useState(toDateTimeInput(task?.start_date));
   const [dueDate, setDueDate] = useState(toDateTimeInput(task?.due_date));
 
@@ -61,9 +54,7 @@ export function TaskForm({
       parent_task_id: parentTaskId || null,
       priority,
       status,
-      assignee_ids: assigneeIds.filter((id) =>
-        project.members.includes(id),
-      ),
+      assignee_ids: assigneeIds.filter((id) => project.members.includes(id)),
       assignee_id:
         assigneeIds.find((id) => project.members.includes(id)) ?? null,
       start_date: fromDateTimeInput(startDate),
@@ -74,7 +65,7 @@ export function TaskForm({
   }
 
   const parentTasks = tasks.filter(
-    (item) => item.projectId === projectId && item.id !== task?.id,
+    (item) => item.projectId === projectId && item.task_id !== task?.task_id,
   );
   const selectedProject = projects.find((item) => item.id === projectId);
   const projectMembers = new Set(selectedProject?.members ?? []);
@@ -158,6 +149,7 @@ export function TaskForm({
               }}
               className="min-w-0 rounded-md border border-[#e1e3e9] bg-white px-2.5 py-2.5 text-[11px] dark:border-white/10 dark:bg-[#181920]"
             >
+              <option value="">Select a project</option>
               {projects.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -253,7 +245,7 @@ export function TaskForm({
           >
             <option value="">No parent task</option>
             {parentTasks.map((item) => (
-              <option key={item.id} value={item.id}>
+              <option key={item.task_id} value={item.task_id}>
                 {item.title}
               </option>
             ))}
@@ -274,7 +266,7 @@ export function TaskForm({
           </button>
           <button
             type="submit"
-            disabled={projects.length === 0}
+            disabled={projects.length === 0 || !projectId}
             className="rounded-md bg-[#6755e8] px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-40"
           >
             {task ? "Save changes" : "Create task"}
@@ -289,7 +281,9 @@ function toDateTimeInput(value: string | null | undefined) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  const localDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60_000,
+  );
   return localDate.toISOString().slice(0, 16);
 }
 

@@ -16,7 +16,7 @@ type ProjectState = {
   projects: Project[];
   projectMembers: ProjectMember[];
   projectRoles: ProjectRole[];
-  createProject: (input: ProjectInput) => void;
+  createProject: (input: ProjectInput, id?: string) => void;
   setProjects: (input: Project[]) => void;
   setWorkspaceProjects: (workspaceId: string, input: Project[]) => void;
   setProjectMembers: (
@@ -41,11 +41,11 @@ export const useProjectStore = create<ProjectState>()(
   projects: initialData.projects,
   projectMembers: initialData.project_members,
   projectRoles: initialData.project_roles,
-  createProject: (input) => {
+  createProject: (input, id) => {
     const now = new Date().toISOString();
     const project: Project = {
       ...input,
-      id: createStoreId("project"),
+      id: id ?? createStoreId("project"),
       progress: 0,
       created_at: input.created_at ?? now,
       updated_at: now,

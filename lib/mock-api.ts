@@ -61,13 +61,13 @@ export function getMockWorkspaceData(): MockWorkspaceData {
     ),
     tasks: tasks.map((task) => ({
       ...task,
-      assignee_ids: getTaskAssigneeIds(task.id, task.assignee_id),
+      assignee_ids: getTaskAssigneeIds(task.task_id, task.assignee_id),
     })),
     task_assignees: tasks.flatMap((task): TaskAssignee[] => {
-      return getTaskAssigneeIds(task.id, task.assignee_id).map((user_id) => ({
+      return getTaskAssigneeIds(task.task_id, task.assignee_id).map((user_id) => ({
         workspace_id: task.workspace_id,
         project_id: task.projectId,
-        task_id: task.id,
+        task_id: task.task_id,
         user_id,
         assigned_by: task.created_by,
         assigned_at: task.created_at,

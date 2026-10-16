@@ -56,7 +56,7 @@ export function TaskBoard({
               </span>
             </div>
             <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-[900px] grid-cols-4 gap-3">
+              <div className="grid min-w-225 grid-cols-4 gap-3">
                 {taskStatuses.map((status) => {
                   const columnTasks = projectTasks.filter(
                     (task) => task.status === status.value,
@@ -66,14 +66,15 @@ export function TaskBoard({
                     <section
                       key={status.value}
                       aria-label={`${project.name}: ${status.label}`}
-                      className="min-h-52 rounded-xl border border-[#e7e9ee] bg-[#f8f9fb] p-2.5 dark:border-white/10 dark:bg-white/[0.03]"
+                      className="min-h-52 rounded-xl border border-[#e7e9ee] bg-[#f8f9fb] p-2.5 dark:border-white/10 dark:bg-white/3"
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => {
                         event.preventDefault();
-                        const taskId =
-                          event.dataTransfer.getData("application/x-task-id");
+                        const taskId = event.dataTransfer.getData(
+                          "application/x-task-id",
+                        );
                         const task = projectTasks.find(
-                          (item) => item.id === taskId,
+                          (item) => item.task_id === taskId,
                         );
                         if (task && task.status !== status.value) {
                           onStatusChange(task, status.value);
@@ -93,17 +94,19 @@ export function TaskBoard({
                           const editable = canEditTask(task);
                           return (
                             <article
-                              key={task.id}
+                              key={task.task_id}
                               draggable={editable}
                               onDragStart={(event) => {
                                 event.dataTransfer.setData(
                                   "application/x-task-id",
-                                  task.id,
+                                  task.task_id,
                                 );
                                 event.dataTransfer.effectAllowed = "move";
                               }}
                               className={`rounded-lg border border-[#e6e8ee] bg-white p-3 shadow-sm dark:border-white/10 dark:bg-[#181920] ${
-                                editable ? "cursor-grab active:cursor-grabbing" : ""
+                                editable
+                                  ? "cursor-grab active:cursor-grabbing"
+                                  : ""
                               }`}
                             >
                               <div className="flex items-start gap-2">

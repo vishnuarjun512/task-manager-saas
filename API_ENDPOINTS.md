@@ -1,6 +1,6 @@
 # Orbit Workspace API Contract
 
-This guide describes the API the frontend calls when `NEXT_PUBLIC_API_URL` is configured, plus the request/response contract the backend should implement. The frontend sends JSON with cookies (`credentials: "include"`). Use HTTPS in production.
+This guide describes the API the frontend calls when `NEXT_PUBLIC_API_URL` is configured, plus the request/response contract the backend should implement. The frontend sends JSON with cookies (`credentials: "include"`). Use HTTPS in production. Connections currently use mock data only; no connection endpoints are called by the frontend.
 
 When the API URL is unset, workspace/project/task forms use the existing mock stores. When it is set, successful API responses update the local Zustand cache; failed calls show an error and do not pretend that a remote mutation succeeded. Seeded project/task state remains available while backend reads are loading.
 
@@ -13,7 +13,7 @@ When the API URL is unset, workspace/project/task forms use the existing mock st
 - Return JSON errors such as `{"error":"forbidden","message":"You do not have permission to edit this project."}`. The client surfaces `message` (or `error`); use `401` for expired/invalid sessions, `403` for permission failures, `404` for missing resources, and `422` for invalid input.
 - All project, member, and task reads/writes must validate workspace membership and relation ownership in the backend.
 
-## Routes Already Called by the Frontend
+## Existing Frontend API Contracts
 
 These existing paths are preserved to avoid breaking the working API integration.
 
@@ -28,15 +28,15 @@ These existing paths are preserved to avoid breaking the working API integration
 | `POST /workspace` | Workspace create form submit | `{"name":"Studio North","description":"Design and brand work"}` | `{"workspace":Workspace}` (or the Workspace object itself). The returned `workspace_id` is required; the client must not invent the server ID. |
 | `PATCH /workspace/:workspace_id` | Existing workspace edit submit | `{"name":"Studio North","description":"Updated description"}` | `{"workspace":Workspace}` or `204 No Content`. |
 | `DELETE /workspace/:workspace_id` | Confirm workspace deletion | None | `204 No Content` (or a JSON success result). Prefer archive semantics; if deletion cascades, the server must apply the product's confirmation/authorization policy. |
-| `GET /projects/:workspace_id` | Project list opens, or a project edit/create needs refreshed project data | None | `{"projects":[Project,...]}`. Project records use the database shape below and may include `project_members` or `members` as user IDs or `{"user_id":"..."}` records. |
-| `POST /projects` | Project create form submit | Project JSON shown below | `{"project":Project}` or an object containing `project_id`/`id`. The client reloads the workspace project list after create. |
+| `GET /projects/:workspace_id` | Project list opens | None | `{"projects":[Project,...]}`. Project records use the database shape below and may include `project_members` or `members` as user IDs or `{"user_id":"..."}` records. |
+| `POST /projects` | Project create form submit | Project JSON shown below | `{"project":Project}` or an object containing `project_id`/`id`. The client stores the created project from the form data and response ID. |
 | `DELETE /projects/:project_id` | Confirm project deletion | None | `204 No Content` (or a JSON success result). |
-| `GET /users?public_id=ORB-2048` | Connection form searches the entered public Orbit ID | None | `{"user":{"user_id":"8a1...","public_id":"ORB-2048","display_name":"Sarah Lee","email":"sarah@example.com"}}`. Return only safe directory fields. |
-| `GET /connections` | Connection page, project editor, or task editor needs connected people | None | `{"connections":[ConnectionView,...]}`. Include accepted connections and pending requests visible to the caller. |
-| `POST /connections/requests` | Send connection request after person lookup | `{"public_id":"ORB-2048"}` | `{"connection":ConnectionView}`. Resolve the recipient server-side and reject self/duplicate requests. |
-| `POST /connections/requests/:request_id/accept` | Accept an incoming pending request | None | `204 No Content` (or updated ConnectionView). Only the recipient may accept. |
-| `POST /connections/requests/:request_id/decline` | Decline an incoming pending request | None | `204 No Content` (or updated ConnectionView). Only the recipient may decline. |
-| `DELETE /connections/:connection_id` | Cancel an outgoing request or remove an accepted connection | None | `204 No Content`. Authorize cancellation/removal against the caller and connection state. |
+| `GET /users?public_id=ORB-2048` | Not currently called; lookup uses the local mock directory | None | `{"user":{"user_id":"8a1...","public_id":"ORB-2048","display_name":"Sarah Lee","email":"sarah@example.com"}}`. Return only safe directory fields. |
+| `GET /connections` | Not currently called; the UI uses mock connection data | None | `{"connections":[ConnectionView,...]}`. Include accepted connections and pending requests visible to the caller. |
+| `POST /connections/requests` | Not currently called; requests update the local mock store | `{"public_id":"ORB-2048"}` | `{"connection":ConnectionView}`. Resolve the recipient server-side and reject self/duplicate requests. |
+| `POST /connections/requests/:request_id/accept` | Not currently called; status updates are local | None | `204 No Content` (or updated ConnectionView). Only the recipient may accept. |
+| `POST /connections/requests/:request_id/decline` | Not currently called; status updates are local | None | `204 No Content` (or updated ConnectionView). Only the recipient may decline. |
+| `DELETE /connections/:connection_id` | Not currently called; connection removal is local | None | `204 No Content`. Authorize cancellation/removal against the caller and connection state. |
 
 ### Workspace response shape
 
@@ -80,7 +80,7 @@ The list route wraps records in a `projects` array. `progress` is a frontend-der
 | Method and path | Called from / when | Request JSON | Successful response |
 | --- | --- | --- | --- |
 | `PATCH /projects/:project_id` | Existing project form submits | Mutable project fields as shown below | Updated project JSON or `204 No Content`. |
-| `PUT /projects/:project_id/members` | Project form submits, immediately after project create/update | `{"members":[{"user_id":"8a1..."},{"user_id":"9b2..."}]}` | `{"project_members":[{"workspace_id":"...","project_id":"...","user_id":"...","added_by":"...","joined_at":"..."}]}` or `204 No Content`. Derive workspace and actor on the server. Replace the project's membership set transactionally. |
+| `PUT /projects/:project_id/members` | Existing project form submits | `{"members":[{"user_id":"8a1..."},{"user_id":"9b2..."}]}` | `{"project_members":[{"workspace_id":"...","project_id":"...","user_id":"...","added_by":"...","joined_at":"..."}]}` or `204 No Content`. Derive workspace and actor on the server. Replace the project's membership set transactionally. |
 | `GET /projects/:project_id/tasks` | Task list/board opens for a workspace; the frontend requests each visible project's tasks | None | `{"tasks":[Task,...]}`. Return database-shaped records in the same project. |
 | `GET /tasks/:task_id` | A task edit URL is opened and the task is not in the local store | None | `{"task":Task}`. Include `workspace_id`, `project_id`, and the project in the workspace's loaded project list so the editor can resolve its display context. |
 | `POST /projects/:project_id/tasks` | Task create form submits | Task JSON shown below | `{"task":Task}` with the created IDs and timestamps. |

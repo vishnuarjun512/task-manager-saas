@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useConnectionStore } from "@/lib/stores/connection-store";
-import { useConnectionHydration } from "@/lib/stores/use-connection-hydration";
 import {
   apiFetch,
   isApiConfigured,
   SessionExpiredError,
 } from "@/lib/api-fetch";
 import { useProfileStore } from "@/lib/stores/profile-store";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import {
@@ -26,7 +26,7 @@ import { findTaskById } from "@/lib/stores/selectors";
 import { useStoreHydration } from "@/lib/stores/use-store-hydration";
 import { TaskForm } from "@/components/task-form";
 import { useApi } from "@/lib/use-api";
-import { Task } from "@/lib/orbit-data";
+import type { TaskInput } from "@/lib/orbit-data";
 
 /** Resolves the requested task from hydrated store data, then handles edits. */
 export function TaskEditorPage({
@@ -43,8 +43,9 @@ export function TaskEditorPage({
   const { activeWorkspaceId } = useWorkspaceStore();
   const isHydrated = useStoreHydration();
   const { connections } = useConnectionStore();
-  useConnectionHydration();
   const { profile } = useProfileStore();
+  const { user } = useAuthStore();
+  const currentUserId = user?.user_id ?? profile.id;
   const { execute } = useApi();
   const [remoteTaskLoadComplete, setRemoteTaskLoadComplete] = useState(false);
   const [remoteTaskLoadError, setRemoteTaskLoadError] = useState<string | null>(
@@ -105,14 +106,28 @@ export function TaskEditorPage({
     };
   }, [execute, isHydrated, setWorkspaceProjects, taskId, upsertTask]);
   const permittedProjects = projects.filter((item) => {
-    if (projectId) return item.id === projectId;
+    if (projectId) {
+      return (
+        item.id === projectId &&
+        (task
+          ? item.id === task.projectId
+          : hasProjectPermission(
+              item.id,
+              currentUserId,
+              "create_tasks",
+              projects,
+              projectMembers,
+              projectRoles,
+            ))
+      );
+    }
     if (task) {
       return (
         item.workspace_id === task.workspace_id &&
         (item.id === task.projectId ||
           hasProjectPermission(
             item.id,
-            profile.id,
+            currentUserId,
             "create_tasks",
             projects,
             projectMembers,
@@ -124,7 +139,7 @@ export function TaskEditorPage({
       item.workspace_id === activeWorkspaceId &&
       hasProjectPermission(
         item.id,
-        profile.id,
+        currentUserId,
         "create_tasks",
         projects,
         projectMembers,
@@ -132,10 +147,11 @@ export function TaskEditorPage({
       )
     );
   });
+
   const canEdit = task
     ? hasProjectPermission(
         task.projectId,
-        profile.id,
+        currentUserId,
         "edit_tasks",
         projects,
         projectMembers,
@@ -205,16 +221,16 @@ export function TaskEditorPage({
 
   return (
     <TaskForm
-      key={task?.task_id ?? `new-${projectId ?? "task"}`}
+      key={taskId ?? `new-${projectId ?? "task"}`}
       task={task}
       projectId={projectId}
       projects={permittedProjects}
       tasks={tasks.filter((item) =>
         permittedProjects.some((project) => project.id === item.projectId),
       )}
-      currentUserId={profile.id}
+      currentUserId={currentUserId}
       connections={[
-        { id: profile.id, name: profile.name },
+        { id: currentUserId, name: profile.name },
         ...connections
           .filter((connection) => connection.status === "connected")
           .map((connection) => ({
@@ -223,7 +239,7 @@ export function TaskEditorPage({
           })),
       ]}
       onClose={closeEditor}
-      onSave={async (input: Task) => {
+      onSave={async (input: TaskInput) => {
         if (isApiConfigured) {
           try {
             const data = await execute(() =>

@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getMockWorkspaceData } from "@/lib/mock-api";
-import type { Task, TaskStatus } from "@/lib/orbit-data";
+import type { Task, TaskInput, TaskStatus } from "@/lib/orbit-data";
 import { useActivityStore } from "@/lib/stores/activity-store";
 import { createStoreId } from "@/lib/stores/ids";
 import { useProfileStore } from "@/lib/stores/profile-store";
@@ -13,10 +13,10 @@ type TaskState = {
   tasks: Task[];
   taskAssignees: TaskAssignee[];
   schedule: Schedule;
-  createTask: (input: Task) => void;
+  createTask: (input: TaskInput) => void;
   setProjectTasks: (projectId: string, tasks: Task[]) => void;
   upsertTask: (task: Task) => void;
-  updateTask: (task_id: string, input: Task) => void;
+  updateTask: (task_id: string, input: TaskInput) => void;
   setTaskStatus: (task_id: string, status: TaskStatus) => void;
   toggleTask: (task_id: string) => void;
   deleteTask: (task_id: string) => void;

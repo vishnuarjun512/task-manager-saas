@@ -103,8 +103,7 @@ export type Schedule = Record<string, ScheduledTask>;
 export type AuthUser = {
   user_id: string;
   email: string;
-  public_id?: string;
-  username: string | null;
+  name: string | null;
   full_name: string | null;
   avatar_url?: string;
   created_at: string;

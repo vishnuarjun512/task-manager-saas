@@ -22,12 +22,16 @@ import { useStoreHydration } from "@/lib/stores/use-store-hydration";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import { hasProjectPermission } from "@/lib/project-roles";
 import { useApi } from "@/lib/use-api";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 export function TaskManager({ projectId }: { projectId?: string }) {
   const { tasks, deleteTask, setTaskStatus, setProjectTasks } = useTaskStore();
   const { projects, projectMembers, projectRoles } = useProjectStore();
   const { activeWorkspaceId } = useWorkspaceStore();
   const { profile } = useProfileStore();
+  const { user } = useAuthStore();
+  const currentUserId = user?.user_id ?? profile.id;
+  console.log("Current UserID -> ", currentUserId);
   useStoreHydration();
   const router = useRouter();
   const [view, setView] = useState<"list" | "board">("list");
@@ -48,7 +52,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
   const availableTaskProjects = availableProjects.filter((item) =>
     hasProjectPermission(
       item.id,
-      profile.id,
+      currentUserId,
       "create_tasks",
       projects,
       projectMembers,
@@ -56,48 +60,31 @@ export function TaskManager({ projectId }: { projectId?: string }) {
     ),
   );
 
-  const canCreateTask = availableTaskProjects.length > 0;
+  const canCreateTask =
+    project?.created_by === currentUserId || availableTaskProjects.length > 0;
 
   const visibleProjects = projectId
     ? availableProjects.filter((item) => item.id === projectId)
     : availableProjects;
 
   useEffect(() => {
-    if (!isApiConfigured || !availableProjects.length) return;
-    let cancelled = false;
-
-    Promise.all(
-      availableProjects.map(async (project) => {
-        const response = await execute(() =>
-          apiFetch(`/projects/${encodeURIComponent(project.id)}/tasks`, "GET"),
-        );
-        return [project.id, parseTasksResponse(response, project)] as const;
-      }),
-    )
-      .then((projectTasks) => {
-        if (!cancelled) {
-          projectTasks.forEach(([id, items]) => setProjectTasks(id, items));
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled || error instanceof SessionExpiredError) return;
-        toast.error("Tasks could not be loaded", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-      });
-
-    return () => {
-      cancelled = true;
+    const fetchAllTasks = async () => {
+      if (!projectId) return;
+      const response = await execute(() =>
+        apiFetch(`/tasks/${encodeURIComponent(projectId)}`, "GET"),
+      );
+      console.log("Response -> ", response);
     };
-  }, [availableProjects, execute, setProjectTasks]);
+
+    fetchAllTasks();
+  }, []);
 
   async function changeTaskStatus(task: Task, status: TaskStatus) {
     if (
       visibleProjects.some((item) => item.id === task.projectId) &&
       hasProjectPermission(
         task.projectId,
-        profile.id,
+        currentUserId,
         "edit_tasks",
         projects,
         projectMembers,
@@ -183,7 +170,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           </div>
           {canCreateTask ? (
             <Link
-              href={`/tasks/new${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""}`}
+              href={`/tasks/new${projectId != undefined ? `?projectId=${projectId}` : ""}`}
               className="flex items-center gap-2 rounded-md bg-[#6755e8] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#5947d3]"
             >
               <Plus size={14} /> Add task
@@ -209,7 +196,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
             if (
               !hasProjectPermission(
                 task.projectId,
-                profile.id,
+                currentUserId,
                 "edit_tasks",
                 projects,
                 projectMembers,
@@ -224,7 +211,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           canToggleTask={(task) =>
             hasProjectPermission(
               task.projectId,
-              profile.id,
+              currentUserId,
               "edit_tasks",
               projects,
               projectMembers,
@@ -234,7 +221,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           canEditTask={(task) =>
             hasProjectPermission(
               task.projectId,
-              profile.id,
+              currentUserId,
               "edit_tasks",
               projects,
               projectMembers,
@@ -244,7 +231,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           canDeleteTask={(task) =>
             hasProjectPermission(
               task.projectId,
-              profile.id,
+              currentUserId,
               "delete_tasks",
               projects,
               projectMembers,
@@ -264,7 +251,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           canEditTask={(task) =>
             hasProjectPermission(
               task.projectId,
-              profile.id,
+              currentUserId,
               "edit_tasks",
               projects,
               projectMembers,
@@ -274,7 +261,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
           canDeleteTask={(task) =>
             hasProjectPermission(
               task.projectId,
-              profile.id,
+              currentUserId,
               "delete_tasks",
               projects,
               projectMembers,
