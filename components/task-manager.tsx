@@ -9,19 +9,14 @@ import { ConfirmDialog } from "@/components/dialog-shell";
 import { TaskBoard } from "@/components/task-board";
 import { TaskList } from "@/components/task-list";
 import type { Task, TaskStatus } from "@/lib/orbit-data";
-import {
-  apiFetch,
-  isApiConfigured,
-  SessionExpiredError,
-} from "@/lib/api-fetch";
-import { parseTasksResponse } from "@/lib/task-api";
+
 import { useProfileStore } from "@/lib/stores/profile-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useStoreHydration } from "@/lib/stores/use-store-hydration";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import { hasProjectPermission } from "@/lib/project-roles";
-import { useApi } from "@/lib/use-api";
+import { apiFetch, useApi } from "@/lib/use-api";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 export function TaskManager({ projectId }: { projectId?: string }) {
@@ -91,45 +86,42 @@ export function TaskManager({ projectId }: { projectId?: string }) {
         projectRoles,
       )
     ) {
-      if (isApiConfigured) {
-        try {
-          await execute(() =>
-            apiFetch(`/tasks/${encodeURIComponent(task.task_id)}`, "PATCH", {
-              status,
-            }),
-          );
-        } catch (error) {
-          if (error instanceof SessionExpiredError) return;
-          toast.error("Task status could not be updated", {
-            description:
-              error instanceof Error ? error.message : "Something went wrong.",
-          });
-          return;
-        }
+      try {
+        await execute(() =>
+          apiFetch(`/tasks/${encodeURIComponent(task.task_id)}`, "PATCH", {
+            status,
+          }),
+        );
+      } catch (error) {
+        toast.error("Task status could not be updated", {
+          description:
+            error instanceof Error ? error.message : "Something went wrong.",
+        });
+        return;
       }
+
       setTaskStatus(task.task_id, status);
     }
   }
 
   async function deleteSelectedTask() {
     if (!deletingTask) return;
-    if (isApiConfigured) {
-      try {
-        await execute(() =>
-          apiFetch(
-            `/tasks/${encodeURIComponent(deletingTask.task_id)}`,
-            "DELETE",
-          ),
-        );
-      } catch (error) {
-        if (error instanceof SessionExpiredError) return;
-        toast.error("Task could not be deleted", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-        return;
-      }
+
+    try {
+      await execute(() =>
+        apiFetch(
+          `/tasks/${encodeURIComponent(deletingTask.task_id)}`,
+          "DELETE",
+        ),
+      );
+    } catch (error) {
+      toast.error("Task could not be deleted", {
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
+      return;
     }
+
     deleteTask(deletingTask.task_id);
     setDeletingTask(null);
   }

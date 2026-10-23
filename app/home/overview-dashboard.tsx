@@ -16,8 +16,8 @@ import { useConnectionStore } from "@/lib/stores/connection-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
-import { useApi } from "@/lib/use-api";
-import { apiFetch } from "@/lib/api-fetch";
+import { apiFetch, useApi } from "@/lib/use-api";
+import { toast } from "sonner";
 
 export function OverviewDashboard() {
   const { tasks } = useTaskStore();
@@ -82,11 +82,14 @@ export function OverviewDashboard() {
   const { execute } = useApi();
   useEffect(() => {
     const fetchAllWorkspaces = async () => {
-      const response = await execute(() => apiFetch(`/home`, "GET"));
-      console.log("Response -> ", response);
-      setWorkspaces(response.workspaces);
+      const data = await execute(() => apiFetch(`/home`));
+      console.log("Response -> ", data);
+      if (data.error) {
+        toast.message(data.message);
+        return;
+      }
+      setWorkspaces(data.workspaces);
     };
-
     fetchAllWorkspaces();
   }, []);
 

@@ -4,16 +4,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, DialogShell } from "@/components/dialog-shell";
-import {
-  apiFetch,
-  isApiConfigured,
-  SessionExpiredError,
-} from "@/lib/api-fetch";
+
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";
 import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import type { Workspace } from "@/lib/stores/types";
-import { useApi } from "@/lib/use-api";
+import { apiFetch, useApi } from "@/lib/use-api";
 
 export function WorkspaceManager() {
   const { execute } = useApi();
@@ -29,14 +25,11 @@ export function WorkspaceManager() {
   const { projects } = useProjectStore();
   const { tasks } = useTaskStore();
   useEffect(() => {
-    if (!isApiConfigured) return;
     let cancelled = false;
     execute(() => apiFetch("/workspace", "GET"))
       .then((data) => {
         const records =
-          typeof data === "object" &&
-          data !== null &&
-          "workspaces" in data
+          typeof data === "object" && data !== null && "workspaces" in data
             ? data.workspaces
             : null;
         if (!Array.isArray(records)) {
@@ -78,7 +71,6 @@ export function WorkspaceManager() {
         });
       })
       .catch((error: unknown) => {
-        if (cancelled || error instanceof SessionExpiredError) return;
         toast.error("Workspaces could not be loaded", {
           description:
             error instanceof Error ? error.message : "Something went wrong.",
@@ -95,7 +87,7 @@ export function WorkspaceManager() {
   async function saveWorkspace(
     input: Pick<Workspace, "name" | "description">,
   ): Promise<void> {
-    if (editing && isApiConfigured) {
+    if (editing) {
       try {
         await execute(() =>
           apiFetch(
@@ -107,17 +99,12 @@ export function WorkspaceManager() {
         updateWorkspace(editing.workspace_id, input);
         toast.success("Workspace updated");
       } catch (error) {
-        if (error instanceof SessionExpiredError) return;
         toast.error("Workspace update failed", {
           description:
             error instanceof Error ? error.message : "Something went wrong.",
         });
         return;
       }
-    } else if (editing) {
-      updateWorkspace(editing.workspace_id, input);
-    } else if (!isApiConfigured) {
-      createWorkspace(input);
     } else {
       try {
         const data = await execute(() =>
@@ -126,16 +113,22 @@ export function WorkspaceManager() {
             description: input.description,
           }),
         );
+
         const record =
           typeof data === "object" && data !== null && "workspace" in data
             ? data.workspace
             : data;
         if (typeof record !== "object" || record === null) {
-          throw new Error("The response did not include the created workspace.");
+          throw new Error(
+            "The response did not include the created workspace.",
+          );
         }
         const workspace = record as Record<string, unknown>;
         const workspaceId = workspace.workspace_id ?? workspace.id;
-        if (typeof workspaceId !== "string" || typeof workspace.name !== "string") {
+        if (
+          typeof workspaceId !== "string" ||
+          typeof workspace.name !== "string"
+        ) {
           throw new Error("The response contains an invalid workspace.");
         }
         upsertWorkspace({
@@ -148,8 +141,8 @@ export function WorkspaceManager() {
         });
         setActiveWorkspace(workspaceId);
         toast.success("Workspace created");
+        createWorkspace(input);
       } catch (error) {
-        if (error instanceof SessionExpiredError) return;
         toast.error("Workspace creation failed", {
           description:
             error instanceof Error ? error.message : "Something went wrong.",
@@ -162,23 +155,21 @@ export function WorkspaceManager() {
   }
 
   async function confirmDeleteWorkspace(workspace: Workspace) {
-    if (isApiConfigured) {
-      try {
-        await execute(() =>
-          apiFetch(
-            `/workspace/${encodeURIComponent(workspace.workspace_id)}`,
-            "DELETE",
-          ),
-        );
-      } catch (error) {
-        if (error instanceof SessionExpiredError) return;
-        toast.error("Workspace deletion failed", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-        return;
-      }
+    try {
+      await execute(() =>
+        apiFetch(
+          `/workspace/${encodeURIComponent(workspace.workspace_id)}`,
+          "DELETE",
+        ),
+      );
+    } catch (error) {
+      toast.error("Workspace deletion failed", {
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
+      return;
     }
+
     deleteWorkspace(workspace.workspace_id);
     setDeleting(null);
   }

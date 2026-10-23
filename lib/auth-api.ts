@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-fetch";
+import { apiFetch } from "./use-api";
 
 export function login(email: string, password: string) {
   return apiFetch("/auth/login", "POST", { email, password });
