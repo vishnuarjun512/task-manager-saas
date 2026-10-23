@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/orbit-workspace";
-import { TaskList } from "@/components/task-list";
+import { TaskList } from "@/app/tasks/components/task-list";
 import { useConnectionStore } from "@/lib/stores/connection-store";
 import { useProjectStore } from "@/lib/stores/project-store";
 import { useTaskStore } from "@/lib/stores/task-store";

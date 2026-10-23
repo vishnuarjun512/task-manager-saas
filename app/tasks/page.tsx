@@ -1,5 +1,5 @@
 import { OrbitWorkspace, PageHeader } from "@/components/orbit-workspace";
-import { TaskManager } from "@/components/task-manager";
+import { TaskManager } from "@/app/tasks/components/task-manager";
 
 export default function TasksPage() {
   return (

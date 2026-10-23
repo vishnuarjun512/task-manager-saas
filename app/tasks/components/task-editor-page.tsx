@@ -5,11 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useConnectionStore } from "@/lib/stores/connection-store";
-import {
-  apiFetch,
-  isApiConfigured,
-  SessionExpiredError,
-} from "@/lib/api-fetch";
+
 import { useProfileStore } from "@/lib/stores/profile-store";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useProjectStore } from "@/lib/stores/project-store";
@@ -24,8 +20,8 @@ import { useWorkspaceStore } from "@/lib/stores/workspace-store";
 import { hasProjectPermission } from "@/lib/project-roles";
 import { findTaskById } from "@/lib/stores/selectors";
 import { useStoreHydration } from "@/lib/stores/use-store-hydration";
-import { TaskForm } from "@/components/task-form";
-import { useApi } from "@/lib/use-api";
+import { TaskForm } from "@/app/tasks/components/task-form";
+import { apiFetch, useApi } from "@/lib/use-api";
 import type { TaskInput } from "@/lib/orbit-data";
 
 /** Resolves the requested task from hydrated store data, then handles edits. */
@@ -58,7 +54,7 @@ export function TaskEditorPage({
   }, [projects]);
 
   useEffect(() => {
-    if (!isHydrated || !taskId || !isApiConfigured) return;
+    if (!isHydrated || !taskId) return;
     let cancelled = false;
     execute(() => apiFetch(`/tasks/${encodeURIComponent(taskId)}`, "GET"))
       .then(async (data) => {
@@ -91,12 +87,10 @@ export function TaskEditorPage({
         if (!cancelled) upsertTask(parseTaskResponse(data, taskProjects));
       })
       .catch((error: unknown) => {
-        if (!cancelled && !(error instanceof SessionExpiredError)) {
-          const message =
-            error instanceof Error ? error.message : "Something went wrong.";
-          setRemoteTaskLoadError(message);
-          toast.error("Task could not be loaded", { description: message });
-        }
+        const message =
+          error instanceof Error ? error.message : "Something went wrong.";
+        setRemoteTaskLoadError(message);
+        toast.error("Task could not be loaded", { description: message });
       })
       .finally(() => {
         if (!cancelled) setRemoteTaskLoadComplete(true);
@@ -177,7 +171,7 @@ export function TaskEditorPage({
     );
   }
 
-  if (taskId && isApiConfigured && !remoteTaskLoadComplete) {
+  if (taskId && !remoteTaskLoadComplete) {
     return (
       <section className="mx-auto mt-6 max-w-4xl">
         <p className="text-[12px] text-[#858b97]">Loading task…</p>
@@ -185,7 +179,7 @@ export function TaskEditorPage({
     );
   }
 
-  if (taskId && isApiConfigured && remoteTaskLoadError) {
+  if (taskId && remoteTaskLoadError) {
     return (
       <section className="mx-auto mt-6 max-w-4xl">
         <button
@@ -240,37 +234,33 @@ export function TaskEditorPage({
       ]}
       onClose={closeEditor}
       onSave={async (input: TaskInput) => {
-        if (isApiConfigured) {
-          try {
-            const data = await execute(() =>
-              task
-                ? apiFetch(
-                    `/tasks/${encodeURIComponent(task.task_id)}`,
-                    "PATCH",
-                    taskRequestBody(input),
-                  )
-                : apiFetch(
-                    `/projects/${encodeURIComponent(input.projectId)}/tasks`,
-                    "POST",
-                    taskRequestBody(input),
-                  ),
-            );
-            upsertTask(parseTaskResponse(data, projects));
-          } catch (error) {
-            if (error instanceof SessionExpiredError) return;
-            toast.error("Task could not be saved", {
-              description:
-                error instanceof Error
-                  ? error.message
-                  : "Something went wrong.",
-            });
-            return;
+        try {
+          const data = await execute(() =>
+            task
+              ? apiFetch(
+                  `/tasks/${encodeURIComponent(task.task_id)}`,
+                  "PATCH",
+                  taskRequestBody(input),
+                )
+              : apiFetch(
+                  `/projects/${encodeURIComponent(input.projectId)}/tasks`,
+                  "POST",
+                  taskRequestBody(input),
+                ),
+          );
+          if (task) {
+            updateTask(task.task_id, input);
+          } else {
+            createTask(input);
           }
-        } else if (task) {
-          updateTask(task.task_id, input);
-        } else {
-          createTask(input);
+          upsertTask(parseTaskResponse(data, projects));
+        } catch (error) {
+          toast.error("Task could not be saved", {
+            description:
+              error instanceof Error ? error.message : "Something went wrong.",
+          });
         }
+
         const destinationProjectId = projectId ?? (task ? input.projectId : "");
         router.push(
           destinationProjectId

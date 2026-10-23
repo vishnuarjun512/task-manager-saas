@@ -6,8 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/dialog-shell";
-import { TaskBoard } from "@/components/task-board";
-import { TaskList } from "@/components/task-list";
+import { TaskBoard } from "@/app/tasks/components/task-board";
+import { TaskList } from "@/app/tasks/components/task-list";
 import type { Task, TaskStatus } from "@/lib/orbit-data";
 
 import { useProfileStore } from "@/lib/stores/profile-store";
@@ -26,7 +26,7 @@ export function TaskManager({ projectId }: { projectId?: string }) {
   const { profile } = useProfileStore();
   const { user } = useAuthStore();
   const currentUserId = user?.user_id ?? profile.id;
-  console.log("Current UserID -> ", currentUserId);
+
   useStoreHydration();
   const router = useRouter();
   const [view, setView] = useState<"list" | "board">("list");

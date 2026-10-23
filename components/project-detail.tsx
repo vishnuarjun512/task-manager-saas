@@ -9,7 +9,7 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { TaskManager } from "@/components/task-manager";
+import { TaskManager } from "@/app/tasks/components/task-manager";
 import { hasProjectPermission } from "@/lib/project-roles";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useProfileStore } from "@/lib/stores/profile-store";

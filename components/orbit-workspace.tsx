@@ -671,4 +671,4 @@ function formatProjectDue(value: string) {
   }).format(new Date(`${value.slice(0, 10)}T12:00:00`));
 }
 
-export { TaskList } from "@/components/task-list";
+export { TaskList } from "@/app/tasks/components/task-list";
