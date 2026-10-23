@@ -14,12 +14,7 @@ import { hasProjectPermission } from "@/lib/project-roles";
 import { useStoreHydration } from "@/lib/stores/use-store-hydration";
 import type { Project as WorkspaceProject } from "@/lib/stores/types";
 import { parseProjectsResponse } from "@/lib/project-data";
-import { useApi } from "@/lib/use-api";
-import {
-  apiFetch,
-  isApiConfigured,
-  SessionExpiredError,
-} from "@/lib/api-fetch";
+import { apiFetch, useApi } from "@/lib/use-api";
 
 export function ProjectManager() {
   const {
@@ -60,19 +55,16 @@ export function ProjectManager() {
   );
 
   async function confirmDeleteProject(project: WorkspaceProject) {
-    if (isApiConfigured) {
-      try {
-        await execute(() =>
-          apiFetch(`/projects/${encodeURIComponent(project.id)}`, "DELETE"),
-        );
-      } catch (error) {
-        if (error instanceof SessionExpiredError) return;
-        toast.error("Project deletion failed", {
-          description:
-            error instanceof Error ? error.message : "Something went wrong.",
-        });
-        return;
-      }
+    try {
+      await execute(() =>
+        apiFetch(`/projects/${encodeURIComponent(project.id)}`, "DELETE"),
+      );
+    } catch (error) {
+      toast.error("Project deletion failed", {
+        description:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
+      return;
     }
     deleteProject(project.id);
     setDeleting(null);
@@ -80,11 +72,8 @@ export function ProjectManager() {
   }
 
   useEffect(() => {
-    if (!isApiConfigured || !isHydrated || !activeWorkspaceId) return;
-
     let cancelled = false;
     loadWorkspaceProjects(activeWorkspaceId).catch((error: unknown) => {
-      if (cancelled || error instanceof SessionExpiredError) return;
       toast.error("Projects could not be loaded", {
         description:
           error instanceof Error ? error.message : "Something went wrong.",
@@ -216,21 +205,25 @@ export function ProjectManager() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-1">
-                        {canManage && <Link
-                          href={`/projects/${project.id}/edit`}
-                          aria-label={`Edit ${project.name}`}
-                          className="rounded-md p-1.5 text-[#8c919d] hover:bg-[#f3f4f6] dark:hover:bg-white/10"
-                        >
-                          <Pencil size={14} />
-                        </Link>}
-                        {canManage && <button
-                          type="button"
-                          aria-label={`Delete ${project.name}`}
-                          onClick={() => setDeleting(project)}
-                          className="rounded-md p-1.5 text-[#8c919d] hover:bg-[#fff1f1] hover:text-[#b93d3d] dark:hover:bg-white/10"
-                        >
-                          <Trash2 size={14} />
-                        </button>}
+                        {canManage && (
+                          <Link
+                            href={`/projects/${project.id}/edit`}
+                            aria-label={`Edit ${project.name}`}
+                            className="rounded-md p-1.5 text-[#8c919d] hover:bg-[#f3f4f6] dark:hover:bg-white/10"
+                          >
+                            <Pencil size={14} />
+                          </Link>
+                        )}
+                        {canManage && (
+                          <button
+                            type="button"
+                            aria-label={`Delete ${project.name}`}
+                            onClick={() => setDeleting(project)}
+                            className="rounded-md p-1.5 text-[#8c919d] hover:bg-[#fff1f1] hover:text-[#b93d3d] dark:hover:bg-white/10"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
